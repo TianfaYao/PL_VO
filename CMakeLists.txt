@@ -65,3 +65,6 @@ target_link_libraries(test_converter ${PROJECT_NAME})
 
 add_executable(test_PLfeature_optimization test/test_PLfeature_optimization/test_PLfeature_optimization.cpp)
 target_link_libraries(test_PLfeature_optimization ${PROJECT_NAME})
+
+add_executable(test_LineFeatureCost test/test_LineFeatureCost.cpp)
+target_link_libraries(test_LineFeatureCost ${PROJECT_NAME})

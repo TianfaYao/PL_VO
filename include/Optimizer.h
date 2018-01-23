@@ -112,6 +112,12 @@ class Optimizer
 {
 public:
 
+    static double ComputeMapLineCost(MapLine *pMapLine, const Eigen::Quaterniond R, const Eigen::Vector3d t,
+                                     const Eigen::Matrix3d K, size_t observeID);
+
+    static double ComputeMapPointCost(MapPoint *pMapPoint, const Eigen::Quaterniond R, const Eigen::Vector3d t,
+                                      const Eigen::Matrix3d K, size_t observeID);
+
     static Eigen::Vector2d ReprojectionError(const ceres::Problem& problem, ceres::ResidualBlockId id);
 
     static vector<double> GetReprojectionErrorNorms(const ceres::Problem &problem);

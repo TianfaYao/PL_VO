@@ -184,6 +184,63 @@ bool ReprojectionLineErrorSE3::Evaluate(double const *const *parameters, double 
 
 }
 
+double Optimizer::ComputeMapLineCost(MapLine *pMapLine, const Eigen::Quaterniond R, const Eigen::Vector3d t,
+                                     const Eigen::Matrix3d K, size_t observeID)
+{
+    double fx, fy, cx, cy;
+    double cost;
+    fx = K(0, 0);
+    fy = K(1, 1);
+    cx = K(0, 2);
+    cy = K(1, 2);
+
+    Eigen::Vector3d Startpoint3dC;
+    Eigen::Vector3d Endpoint3dC;
+    Eigen::Vector2d Startpoint2d;
+    Eigen::Vector2d Endpoint2d;
+    Eigen::Vector2d err;
+    Eigen::Vector3d lineCoef;
+
+    lineCoef = pMapLine->mmpLineFeature2D[observeID]->mLineCoef;
+
+    Startpoint3dC = R*pMapLine->mPoseStartw + t;
+    Endpoint3dC = R*pMapLine->mPoseEndw + t;
+
+    Startpoint2d[0] = fx*Startpoint3dC[0]/Startpoint3dC[2] + cx;
+    Startpoint2d[1] = fy*Startpoint3dC[1]/Startpoint3dC[2] + cy;
+
+    Endpoint2d[0] = fx*Endpoint3dC[0]/Endpoint3dC[2] + cx;
+    Endpoint2d[1] = fy*Endpoint3dC[1]/Endpoint3dC[2] + cy;
+
+    err[0] = lineCoef[0]*Startpoint2d[0] + lineCoef[1]*Startpoint2d[1] + lineCoef[2];
+    err[1] = lineCoef[0]*Endpoint2d[0] + lineCoef[1]*Endpoint2d[1] + lineCoef[2];
+
+    cost = err.norm();
+
+    return cost;
+}
+
+double Optimizer::ComputeMapPointCost(MapPoint *pMapPoint, const Eigen::Quaterniond R, const Eigen::Vector3d t,
+                                      const Eigen::Matrix3d K, size_t observeID)
+{
+    Eigen::Vector2d err;
+    double fx, fy, cx, cy;
+    double cost;
+    fx = K(0, 0);
+    fy = K(1, 1);
+    cx = K(0, 2);
+    cy = K(1, 2);
+
+    Eigen::Vector3d p = R*pMapPoint->mPosew + t;
+
+    err[0] = fx*p[0]/p[2] + cx - pMapPoint->mmpPointFeature2D[observeID]->mpixel[0];
+    err[1] = fy*p[1]/p[2] + cy - pMapPoint->mmpPointFeature2D[observeID]->mpixel[1];
+
+    cost = err.norm();
+
+    return cost;
+}
+
 
 Eigen::Vector2d Optimizer::ReprojectionError(const ceres::Problem& problem, ceres::ResidualBlockId id)
 {
@@ -329,7 +386,7 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         if (pMapPoint->mPosew.isZero())
             continue;
 
-        if (pMapPoint->GetObservedNum() < 2)
+        if (pMapPoint->GetObservedNum() <= 2)
             continue;
 
         if (!pMapPoint->mmpPointFeature2D[frameID]->mbinlier)
@@ -340,9 +397,7 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         ceres::CostFunction *costfunction = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                      observed[0], observed[1]);
 
-        problem.AddResidualBlock(
-                costfunction, lossfunction,
-                extrinsic.ptr<double>(), &pMapPoint->mPosew.x());
+        problem.AddResidualBlock(costfunction, lossfunction, extrinsic.ptr<double>(), &pMapPoint->mPosew.x());
 
         problem.AddParameterBlock(&pMapPoint->mPosew.x(), 3);
     }
@@ -350,7 +405,6 @@ void Optimizer::PoseOptimization(Frame *pFrame)
     // add the MapLine parameterblocks and residuals
     for (auto pMapLine : pFrame->mvpMapLine)
     {
-
         if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
             continue;
 
@@ -371,8 +425,10 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         ceres::CostFunction *costFunction = new ReprojectionLineErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                          observedStart, observedEnd, observedLineCoef);
 
-        problem.AddResidualBlock(costFunction, lossfunction, extrinsic.ptr<double>(),
-                                 &pMapLine->mPoseStartw.x(),
+        double cost;
+        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
+
+        problem.AddResidualBlock(costFunction, lossfunction, extrinsic.ptr<double>(), &pMapLine->mPoseStartw.x(),
                                  &pMapLine->mPoseEndw.x());
 
         problem.AddParameterBlock(&pMapLine->mPoseStartw.x(), 3);
@@ -383,7 +439,7 @@ void Optimizer::PoseOptimization(Frame *pFrame)
 //             << pMapLine->mPoseEndw.transpose() << endl;
     }
 
-    RemoveOutliers(problem, 25);
+//    RemoveOutliers(problem, 25);
 
     vector<double> vresiduals;
     vresiduals = GetReprojectionErrorNorms(problem);
@@ -572,6 +628,9 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 &PoseInc,
 
     double pointInlierth = Config::inlierK()*VectorStdvMad(vPointResiduals);
     double lineInlierth = Config::inlierK()*VectorStdvMad(vLineResiduals);
+
+    CHECK(vPointResiduals.size() == vpPointFeature2DInliers.size());
+    CHECK(vLineResiduals.size() == vpLineFeature2DInliers.size());
 
     for (size_t i = 0; i < vPointResiduals.size(); i++)
     {

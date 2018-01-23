@@ -140,7 +140,11 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
         CHECK_NOTNULL(pPointFeature2DCur);
 
         if (!pPointFeature2DLast->mbinlier)
+        {
+            // TODO if point feature is not inlier in the last frame, the point feature is set outlier in the current frame
+            pPointFeature2DCur->mbinlier = false;
             continue;
+        }
 
         vPoint3d.emplace_back(Converter::toCvPoint3f(pPointFeature2DLast->mPoint3dw));
         vPoint2d.emplace_back(Converter::toCvPoint2f(pPointFeature2DCur->mpixel));
@@ -156,8 +160,13 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
         CHECK_NOTNULL(pLineFeature2DLast);
         CHECK_NOTNULL(pLineFeature2DCur);
 
+        // TODO if line feature is not inlier in the last frame, the line feature is set outlier in the current frame
         if (!pLineFeature2DLast->mbinlier)
+        {
+            pLineFeature2DCur->mbinlier = false;
             continue;
+        }
+
 
         vpLineFeature2DLast.emplace_back(pLineFeature2DLast);
         vpLineFeature2DCur.emplace_back(pLineFeature2DCur);
@@ -218,9 +227,6 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
             pMapPoint->mmpPointFeature2D[mplastFrame->GetFrameID()] = pPointFeature;
             pMapPoint->mlpFrameinvert.push_back(mplastFrame);
 
-//            if (!pMapPoint->mPosew.isZero())
-//                CHECK(fabs(pMapPoint->mPosew.minCoeff()) > 0.01);
-
             mplastFrame->mvpMapPoint.push_back(pMapPoint);
             pPointFeature->mpMapPoint = pMapPoint;
 
@@ -265,11 +271,10 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
             if (pMapPoint->mPosew.isZero())
             {
                 if (!pcurPointFeature->mPoint3dw.isZero())
+                {
                     pMapPoint->mPosew = mpcurrentFrame->Tcw.inverse()*pcurPointFeature->mPoint3dw;
-
-//                if (!pMapPoint->mPosew.isZero())
-//                    CHECK(fabs(pMapPoint->mPosew.minCoeff()) > 0.01);
-                cout << "use the current frame's observation to updae the MapPoint: " << pcurPointFeature->mPoint3dw.transpose() << endl;
+                    cout << "use the current frame's observation to updae the MapPoint: " << pcurPointFeature->mPoint3dw.transpose() << endl;
+                }
             }
 
             mpcurrentFrame->mvpMapPoint.push_back(pMapPoint);
@@ -307,11 +312,6 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
 
             pMapLine->mlpFrameinvert.push_back(mplastFrame);
             pMapLine->mmpLineFeature2D[mplastFrame->GetFrameID()] = pLineFeature;
-
-//            if (!pMapLine->mPoseStartw.isZero())
-//                CHECK(fabs(pMapLine->mPoseStartw.minCoeff()) > 0.01);
-//            if (!pMapLine->mPoseEndw.isZero())
-//                CHECK(fabs(pMapLine->mPoseEndw.minCoeff()) > 0.01);
 
             mplastFrame->mvpMapLine.push_back(pMapLine);
             pLineFeature->mpMapLine = pMapLine;
@@ -360,14 +360,12 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
                 {
                     pMapLine->mPoseStartw =  mpcurrentFrame->Tcw.inverse()*pcurLineFeature->mStartPoint3dw;
                     cout << "use the current frame's observation to updae the MapLine: " << pcurLineFeature->mStartPoint3dw.transpose() << endl;
-//                    CHECK(fabs(pMapLine->mPoseStartw.minCoeff()) > 0.01);
                 }
 
                 if (!pcurLineFeature->mEndPoint3dw.isZero())
                 {
                     pMapLine->mPoseEndw = mpcurrentFrame->Tcw.inverse()*pcurLineFeature->mEndPoint3dw;
                     cout << "use the current frame's observation to updae the MapLine: " << pcurLineFeature->mEndPoint3dw.transpose() << endl;
-//                    CHECK(fabs(pMapLine->mPoseEndw.minCoeff()) > 0.01);
                 }
             }
 
