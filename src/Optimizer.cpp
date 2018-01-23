@@ -408,7 +408,7 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
             continue;
 
-        if (pMapLine->GetObservedNum() < 2)
+        if (pMapLine->GetObservedNum() <= 2)
             continue;
 
         if (!pMapLine->mmpLineFeature2D[frameID]->mbinlier)
@@ -425,8 +425,8 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         ceres::CostFunction *costFunction = new ReprojectionLineErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                          observedStart, observedEnd, observedLineCoef);
 
-        double cost;
-        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
+//        double cost;
+//        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
 
         problem.AddResidualBlock(costFunction, lossfunction, extrinsic.ptr<double>(), &pMapLine->mPoseStartw.x(),
                                  &pMapLine->mPoseEndw.x());
@@ -439,7 +439,7 @@ void Optimizer::PoseOptimization(Frame *pFrame)
 //             << pMapLine->mPoseEndw.transpose() << endl;
     }
 
-//    RemoveOutliers(problem, 25);
+    RemoveOutliers(problem, 25);
 
     vector<double> vresiduals;
     vresiduals = GetReprojectionErrorNorms(problem);

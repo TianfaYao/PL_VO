@@ -142,7 +142,7 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
         if (!pPointFeature2DLast->mbinlier)
         {
             // TODO if point feature is not inlier in the last frame, the point feature is set outlier in the current frame
-            pPointFeature2DCur->mbinlier = false;
+//            pPointFeature2DCur->mbinlier = false;
             continue;
         }
 
@@ -163,7 +163,7 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
         // TODO if line feature is not inlier in the last frame, the line feature is set outlier in the current frame
         if (!pLineFeature2DLast->mbinlier)
         {
-            pLineFeature2DCur->mbinlier = false;
+//            pLineFeature2DCur->mbinlier = false;
             continue;
         }
 
