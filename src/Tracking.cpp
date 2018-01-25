@@ -14,6 +14,9 @@ Tracking::Tracking(Camera *pCamera) : mpcamera(pCamera)
 
     countMapPoint = 0;
     countMapLine = 0;
+
+    mPoseInc.setQuaternion(Eigen::Quaterniond::Identity());
+    mPoseInc.translation().setZero();;
 }
 
 Tracking::~Tracking()
@@ -121,8 +124,6 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
 
 bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches)
 {
-    Sophus::SE3 PoseInc;
-
     vector<cv::Point3d> vPoint3d;
     vector<cv::Point2d> vPoint2d;
     vector<PointFeature2D *> vpPointFeature2DLast;
@@ -172,35 +173,14 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
         vpLineFeature2DCur.emplace_back(pLineFeature2DCur);
     }
 
+    cout << "PoseInc: " << endl << mPoseInc << endl;
 
-    cv::Mat rvec, tvec;
-    vector<int> vinliers;
-    cv::solvePnPRansac(vPoint3d, vPoint2d, Converter::toCvMat(mpcamera->GetCameraIntrinsic()), cv::Mat(),
-                       rvec, tvec, false, 100, 4.0, 0.99, vinliers);
-
-    if (vinliers.size() > 0)
-    {
-        int idx = 0;
-        for (size_t i = 0; i < vpPointFeature2DCur.size(); i++)
-        {
-            if (i == vinliers[idx])
-                idx++;
-            else
-                vpPointFeature2DCur[i]->mbinlier = false;
-        }
-    }
-
-    PoseInc = Sophus::SE3(Sophus::SO3(rvec.at<double>(0,0), rvec.at<double>(1,0), rvec.at<double>(2,0)),
-                          Converter::toVector3d(tvec));
-
-    cout << "PoseInc: " << endl << PoseInc << endl;
-
-    Optimizer::PnPResultOptimization(mpcurrentFrame, PoseInc, vpPointFeature2DLast, vpPointFeature2DCur,
+    Optimizer::PnPResultOptimization(mpcurrentFrame, mPoseInc, vpPointFeature2DLast, vpPointFeature2DCur,
                                      vpLineFeature2DLast, vpLineFeature2DCur);
 
-    cout << "Optimization PoseInc: " << endl << PoseInc << endl;
+    cout << "Optimization PoseInc: " << endl << mPoseInc << endl;
 
-    mpcurrentFrame->Tcw = mplastFrame->Tcw*PoseInc;
+    mpcurrentFrame->Tcw = mplastFrame->Tcw*mPoseInc;
 
 }
 

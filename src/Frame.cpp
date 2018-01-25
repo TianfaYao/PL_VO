@@ -22,6 +22,16 @@ Frame::Frame(const double &timeStamp, Camera *pCamera, LineFeature *pLineFeature
     Tcw.so3().setQuaternion(Eigen::Quaterniond::Identity());
     Tcw.translation() = Eigen::Vector3d(0, 0, 0);
     Twc = Tcw.inverse();
+
+    mvPointLevelSigma2 = pPointFeature->mvLevelSigma2;
+    mvPointInvLevelSigma2 = pPointFeature->mvInvLevelSigma2;
+    mvPointScaleFactors = pPointFeature->mvScaleFactor;
+    mvPointInvScaleFactors = pPointFeature->mvInvScaleFactor;
+
+    mvLineLevelSigma2 = pLineFeature->mvLevelSigma2;
+    mvLineInvLevelSigma2 = pLineFeature->mvInvLevelSigma2;
+    mvLineScaleFactors = pLineFeature->mvScaleFactor;
+    mvLineInvScaleFactors = pLineFeature->mvInvScaleFactor;
 }
 
 Frame::Frame(const Frame &frame)
@@ -43,6 +53,16 @@ Frame::Frame(const Frame &frame)
     mvKeyLine.assign(frame.mvKeyLine.begin(), frame.mvKeyLine.end());
     mvKeyPointUn.assign(frame.mvKeyPointUn.begin(), frame.mvKeyPointUn.end());
     mvKeyLineUn.assign(frame.mvKeyLineUn.begin(), frame.mvKeyLineUn.end());
+
+    mvPointLevelSigma2.assign(frame.mvPointLevelSigma2.begin(), frame.mvPointLevelSigma2.end());
+    mvPointInvLevelSigma2.assign(frame.mvPointInvLevelSigma2.begin(), frame.mvPointInvLevelSigma2.end());
+    mvPointScaleFactors.assign(frame.mvPointScaleFactors.begin(), frame.mvPointScaleFactors.end());
+    mvPointInvScaleFactors.assign(frame.mvPointInvScaleFactors.begin(), frame.mvPointInvScaleFactors.end());
+
+    mvLineLevelSigma2.assign(frame.mvLineLevelSigma2.begin(), frame.mvLineLevelSigma2.end());
+    mvLineInvLevelSigma2.assign(frame.mvLineInvLevelSigma2.begin(), frame.mvLineInvLevelSigma2.end());
+    mvLineScaleFactors.assign(frame.mvLineScaleFactors.begin(), frame.mvLineScaleFactors.end());
+    mvLineInvScaleFactors.assign(frame.mvLineInvScaleFactors.begin(), frame.mvLineInvScaleFactors.end());
 
     mvpPointFeature2D.assign(frame.mvpPointFeature2D.begin(), frame.mvpPointFeature2D.end());
     mvpLineFeature2D.assign(frame.mvpLineFeature2D.begin(), frame.mvpLineFeature2D.end());

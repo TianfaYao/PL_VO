@@ -7,6 +7,29 @@
 namespace PL_VO
 {
 
+PointFeature::PointFeature()
+{
+    mvScaleFactor.resize((size_t)Config::orbNLevels());
+    mvLevelSigma2.resize((size_t)Config::orbNLevels());
+    mvScaleFactor[0] = 1.0f;
+    mvLevelSigma2[0] = 1.0f;
+
+    for (int i = 1; i < Config::orbNLevels(); i++)
+    {
+        mvScaleFactor[i] = mvScaleFactor[i-1]*Config::orbScaleFactor();
+        mvLevelSigma2[i] = mvScaleFactor[i]*mvScaleFactor[i];
+    }
+
+    mvInvScaleFactor.resize((size_t)Config::orbNLevels());
+    mvInvLevelSigma2.resize((size_t)Config::orbNLevels());
+
+    for (int i = 0; i < Config::orbNLevels(); i++)
+    {
+        mvInvScaleFactor[i] = 1.0f/mvScaleFactor[i];
+        mvInvLevelSigma2[i] = 1.0f/mvLevelSigma2[i];
+    }
+}
+
 void PointFeature::detectPointfeature(const cv::Mat &img, vector<cv::KeyPoint> &vkeypoints, cv::Mat &pointdesc)
 {
     cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create( Config::orbNFeatures(), (float)Config::orbScaleFactor(), Config::orbNLevels(),
@@ -26,7 +49,7 @@ void PointFeature::detectPointfeature(const cv::Mat &img, vector<cv::KeyPoint> &
 
         vkeypoints.resize((size_t)Config::orbNFeatures());
 
-        for (int i = 0; i < Config::lsdNFeatures(); i++)
+        for (int i = 0; i < Config::orbNFeatures(); i++)
         {
             vkeypoints[i].class_id = i;
         }

@@ -33,6 +33,7 @@ Config::Config()
     lsd_refine       = 2;
     lsd_scale        = 1.2;
     lsd_sigma_scale  = 0.6;
+    lsd_nlevels      = 4;
     lsd_quant        = 2.0;
     lsd_ang_th       = 22.5;
     lsd_log_eps      = 1.0;

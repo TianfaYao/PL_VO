@@ -76,8 +76,15 @@ public:
 
     cv::Mat mpointDesc;
     cv::Mat mlineDesc;
-    vector<bool> mvPnPPointOutliers;
-    vector<bool> mvPnPLineOutliers;
+    vector<double> mvPointScaleFactors;
+    vector<double> mvPointInvScaleFactors;
+    vector<double> mvPointLevelSigma2;
+    vector<double> mvPointInvLevelSigma2;
+    vector<double> mvLineScaleFactors;
+    vector<double> mvLineInvScaleFactors;
+    vector<double> mvLineLevelSigma2;
+    vector<double> mvLineInvLevelSigma2;
+
     vector<cv::KeyPoint> mvKeyPoint;
     vector<cv::line_descriptor::KeyLine> mvKeyLine;
     vector<cv::KeyPoint> mvKeyPointUn;

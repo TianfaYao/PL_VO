@@ -40,8 +40,9 @@ class ReprojectionErrorSE3 : public ceres::SizedCostFunction<2, 7, 3>
 
 private:
 
-    double observedx;
-    double observedy;
+    double observedx = 0;
+    double observedy = 0;
+    Eigen::Matrix2d sqrtInforMatrix = Eigen::Matrix2d::Identity();
 
 public:
 
@@ -50,8 +51,10 @@ public:
     double cx;
     double cy;
 
-    ReprojectionErrorSE3(double fx_, double fy_, double cx_, double cy_, double observedx_, double observedy_):
-            fx(fx_), fy(fy_), cx(cx_), cy(cy_), observedx(observedx_), observedy(observedy_) {}
+    ReprojectionErrorSE3(double fx_, double fy_, double cx_, double cy_,
+                         double observedx_, double observedy_, const Eigen::Matrix2d sqrtInforMatrix_)
+                         : fx(fx_), fy(fy_), cx(cx_), cy(cy_), observedx(observedx_), observedy(observedy_),
+                         sqrtInforMatrix(sqrtInforMatrix_){}
 
     virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
 
@@ -72,6 +75,7 @@ private:
     Eigen::Vector2d Startpixel = Eigen::Vector2d(0, 0);
     Eigen::Vector2d Endpixel = Eigen::Vector2d(0, 0);
     Eigen::Vector3d lineCoef = Eigen::Vector3d(0, 0, 0);
+    Eigen::Matrix2d sqrtInforMatrix = Eigen::Matrix2d::Identity();
 
 public:
 
@@ -82,13 +86,12 @@ public:
 
     ReprojectionLineErrorSE3(double fx_, double fy_, double cx_, double cy_,
                              const Eigen::Vector2d &Startpixel_, const Eigen::Vector2d &Endpixel_,
-                             const Eigen::Vector3d &lineCoef_) : fx(fx_), fy(fy_), cx(cx_), cy(cy_),
-                             Startpixel(Startpixel_), Endpixel(Endpixel_), lineCoef(lineCoef_){}
+                             const Eigen::Vector3d &lineCoef_, Eigen::Matrix2d sqrtInforMatrix_) : fx(fx_), fy(fy_), cx(cx_), cy(cy_),
+                             Startpixel(Startpixel_), Endpixel(Endpixel_), lineCoef(lineCoef_), sqrtInforMatrix(sqrtInforMatrix_){}
 
     ReprojectionLineErrorSE3(double fx_, double fy_, double cx_, double cy_,
-                             const Eigen::Vector2d &Startpixel_, const Eigen::Vector2d &Endpixel_)
-                             : fx(fx_), fy(fy_), cx(cx_), cy(cy_),
-                             Startpixel(Startpixel_), Endpixel(Endpixel_)
+                             const Eigen::Vector2d &Startpixel_, const Eigen::Vector2d &Endpixel_, const Eigen::Matrix2d sqrtInforMatrix_)
+                             : fx(fx_), fy(fy_), cx(cx_), cy(cy_), Startpixel(Startpixel_), Endpixel(Endpixel_), sqrtInforMatrix(sqrtInforMatrix_)
     {
         Eigen::Vector3d startPointH;
         Eigen::Vector3d endPointH;

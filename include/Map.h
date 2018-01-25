@@ -25,7 +25,10 @@ struct LineFeature2D;
 struct PointFeature2D
 {
     PointFeature2D(const Eigen::Vector2d &pixel, const int &level=0, const double &score=0, const int &idxMatch=-1)
-                   : mpixel(pixel), mlevel(level), mscore(score), midxMatch(idxMatch) {}
+                   : mpixel(pixel), mlevel(level), mscore(score), midxMatch(idxMatch)
+    {
+
+    }
 
     Frame *mpFrame = nullptr;
     MapPoint *mpMapPoint = nullptr;
@@ -39,6 +42,7 @@ struct PointFeature2D
     cv::Mat desc = cv::Mat(1, 32, CV_8UC1);
     bool mbinlier = true;
     double mscore = 0;
+    double mSigma2;
 
 }; // struct PointFeature2D
 
@@ -78,6 +82,7 @@ struct LineFeature2D
     cv::Mat desc = cv::Mat(1, 32, CV_8UC1);
     bool mbinlier = true;
     double mscore = 0;
+    double mSigma2;
 
 }; // struct LineFeature2D
 

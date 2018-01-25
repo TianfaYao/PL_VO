@@ -61,6 +61,11 @@ public:
     vector<cv::DMatch> refineMatchesWithFundamental(const vector<cv::line_descriptor::KeyLine> &vqueryKeylines,
                                                     const vector<cv::line_descriptor::KeyLine> &vtrainKeylines,
                                                     const vector<cv::DMatch> &vmathes);
+
+    vector<double> mvLevelSigma2;
+    vector<double> mvScaleFactor;
+    vector<double> mvInvLevelSigma2;
+    vector<double> mvInvScaleFactor;
 }; // class LineFeature
 
 } // namesapce PL_VO

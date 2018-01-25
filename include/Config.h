@@ -41,6 +41,7 @@ public:
     static int&     lsdRefine()          { return getInstance().lsd_refine; }
     static double&  lsdScale()           { return getInstance().lsd_scale; }
     static double&  lsdSigmaScale()      { return getInstance().lsd_sigma_scale; }
+    static int&     lsdNLevels()         { return getInstance().lsd_nlevels; }
     static double&  lsdQuant()           { return getInstance().lsd_quant; }
     static double&  lsdAngTh()           { return getInstance().lsd_ang_th; }
     static double&  lsdLogEps()          { return getInstance().lsd_log_eps; }
@@ -84,6 +85,7 @@ private:
     int    lsd_refine;
     double lsd_scale;
     double lsd_sigma_scale;
+    int    lsd_nlevels;
     double lsd_quant;
     double lsd_ang_th;
     double lsd_log_eps;

@@ -64,6 +64,8 @@ private:
     PointFeature *mpPointFeature = nullptr;
     Map *mpMap = nullptr;
 
+    Sophus::SE3 mPoseInc;
+
     cv::Mat mimageGray;
     cv::Mat mimagergb;
     cv::Mat mlastimageGrays;

@@ -24,6 +24,9 @@ class PointFeature
 {
 
 public:
+
+    PointFeature();
+
     void detectPointfeature(const cv::Mat &img, vector<cv::KeyPoint> &vkeypoints, cv::Mat &pointdesc);
 
     void matchPointFeatures(const cv::Mat &pointdesc1, const cv::Mat &pointdesc2, vector<cv::DMatch> &vpointmatches12);
@@ -32,6 +35,11 @@ public:
 
     vector<cv::DMatch> refineMatchesWithFundamental(const vector<cv::KeyPoint>& vKeyPoints1, const vector<cv::KeyPoint>& vKeyPoints2,
                                                     const vector<cv::DMatch> &vmathes);
+
+    vector<double> mvLevelSigma2;
+    vector<double> mvScaleFactor;
+    vector<double> mvInvLevelSigma2;
+    vector<double> mvInvScaleFactor;
 
 }; // class PointFeature
 

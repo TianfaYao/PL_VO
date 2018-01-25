@@ -11,7 +11,27 @@ namespace PL_VO
 {
 
 LineFeature::LineFeature()
-{}
+{
+    mvScaleFactor.resize((size_t)Config::lsdNLevels());
+    mvLevelSigma2.resize((size_t)Config::lsdNLevels());
+    mvScaleFactor[0] = 1.0f;
+    mvLevelSigma2[0] = 1.0f;
+
+    for (int i = 1; i < Config::lsdNLevels(); i++)
+    {
+        mvScaleFactor[i] = mvScaleFactor[i-1]*Config::lsdScale();
+        mvLevelSigma2[i] = mvScaleFactor[i]*mvScaleFactor[i];
+    }
+
+    mvInvScaleFactor.resize((size_t)Config::lsdNLevels());
+    mvInvLevelSigma2.resize((size_t)Config::lsdNLevels());
+
+    for (int i = 0; i < Config::lsdNLevels(); i++)
+    {
+        mvInvScaleFactor[i] = 1.0f/mvScaleFactor[i];
+        mvInvLevelSigma2[i] = 1.0f/mvLevelSigma2[i];
+    }
+}
 
 void LineFeature::detectLinefeature(const cv::Mat img, vector<cv::line_descriptor::KeyLine> &vkeylines,
                                     cv::Mat &linedesc, const double minLinelength)

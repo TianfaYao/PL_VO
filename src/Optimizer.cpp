@@ -47,11 +47,14 @@ bool ReprojectionErrorSE3::Evaluate(double const *const *parameters, double *res
     Eigen::Map<const Eigen::Quaterniond> quaterd(parameters[0]);
     Eigen::Map<const Eigen::Vector3d> trans(parameters[0] + 4);
     Eigen::Map<const Eigen::Vector3d> point(parameters[1]);
+    Eigen::Map<Eigen::Vector2d> residual(residuals);
 
     Eigen::Vector3d p = quaterd * point + trans;
 
-    residuals[0] = fx*p[0]/p[2] + cx - observedx;
-    residuals[1] = fy*p[1]/p[2] + cy - observedy;
+    residual[0] = fx*p[0]/p[2] + cx - observedx;
+    residual[1] = fy*p[1]/p[2] + cy - observedy;
+
+    residual = sqrtInforMatrix*residual;
 
     Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobian;
 
@@ -69,6 +72,8 @@ bool ReprojectionErrorSE3::Evaluate(double const *const *parameters, double *res
             Jse3.block<2,3>(0,0) = jacobian;
             Jse3.block<2,3>(0,3) = -jacobian*Converter::skew(p);
 
+//            Jse3 = sqrtInforMatrix*Jse3;
+
 //            CHECK(fabs(Jse3.maxCoeff()) < 1e8);
 //            CHECK(fabs(Jse3.minCoeff()) < 1e8);
         }
@@ -76,6 +81,8 @@ bool ReprojectionErrorSE3::Evaluate(double const *const *parameters, double *res
         {
             Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor> > Jpoint(jacobians[1]);
             Jpoint = jacobian * quaterd.toRotationMatrix();
+
+//            Jpoint = sqrtInforMatrix*Jpoint;
 
 //            CHECK(fabs(Jpoint.maxCoeff()) < 1e8);
 //            CHECK(fabs(Jpoint.minCoeff()) < 1e8);
@@ -91,19 +98,13 @@ bool ReprojectionLineErrorSE3::Evaluate(double const *const *parameters, double 
     Eigen::Map<const Eigen::Vector3d> trans(parameters[0] + 4);
     Eigen::Map<const Eigen::Vector3d> Startpoint3d(parameters[1]);
     Eigen::Map<const Eigen::Vector3d> Endpoint3d(parameters[2]);
+    Eigen::Map<Eigen::Vector2d> residual(residuals);
 
     Eigen::Vector3d Startpoint3dC;
     Eigen::Vector3d Endpoint3dC;
     Eigen::Vector2d Startpoint2d;
     Eigen::Vector2d Endpoint2d;
     Eigen::Vector2d err;
-
-    // the MapLine in the camera coordinate
-//    cout << parameters[0][0] << " " << parameters[0][1] << " " << parameters[0][2] << " " << parameters[0][3] << endl;
-//    cout << parameters[0][4] << " " << parameters[0][5] << " " << parameters[0][6] << endl;
-//
-//    cout << "startpoint3d: " << endl << Startpoint3d << endl;
-//    cout << "endpoint3d: " << endl << Endpoint3d << endl;
 
     Startpoint3dC = quaterd*Startpoint3d + trans;
     Endpoint3dC = quaterd*Endpoint3d + trans;
@@ -117,11 +118,10 @@ bool ReprojectionLineErrorSE3::Evaluate(double const *const *parameters, double 
     err[0] = lineCoef[0]*Startpoint2d[0] + lineCoef[1]*Startpoint2d[1] + lineCoef[2];
     err[1] = lineCoef[0]*Endpoint2d[0] + lineCoef[1]*Endpoint2d[1] + lineCoef[2];
 
-//    err[0] = err[0]/err.norm();
-//    err[1] = err[1]/err.norm();
+    residual[0] = err[0];
+    residual[1] = err[1];
 
-    residuals[0] = err[0];
-    residuals[1] = err[1];
+    residual = sqrtInforMatrix*residual;
 
     Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobianStart;
     Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobianEnd;
@@ -152,6 +152,8 @@ bool ReprojectionLineErrorSE3::Evaluate(double const *const *parameters, double 
             Jse3.block<1, 3>(0, 3) = -jacobian.block<1, 3>(0, 0)*Converter::skew(Startpoint3dC);
             Jse3.block<1, 3>(1, 3) = -jacobian.block<1, 3>(1, 0)*Converter::skew(Endpoint3dC);
 
+//            Jse3 = sqrtInforMatrix*Jse3;
+
 //            CHECK(fabs(Jse3.maxCoeff()) < 1e8);
 //            CHECK(fabs(Jse3.minCoeff()) < 1e8);
         }
@@ -163,6 +165,8 @@ bool ReprojectionLineErrorSE3::Evaluate(double const *const *parameters, double 
 
             Jpoint.block<1, 3>(0, 0) = jacobian.block<1, 3>(0 ,0)*quaterd.toRotationMatrix();
 
+//            Jpoint = sqrtInforMatrix*Jpoint;
+
 //            CHECK(fabs(Jpoint.maxCoeff()) < 1e8);
 //            CHECK(fabs(Jpoint.minCoeff()) < 1e8);
         }
@@ -173,6 +177,8 @@ bool ReprojectionLineErrorSE3::Evaluate(double const *const *parameters, double 
             Jpoint.setZero();
 
             Jpoint.block<1, 3>(1, 0) = jacobian.block<1, 3>(1 ,0)*quaterd.toRotationMatrix();
+
+//            Jpoint = sqrtInforMatrix*Jpoint;
 
 //            CHECK(fabs(Jpoint.maxCoeff()) < 1e8);
 //            CHECK(fabs(Jpoint.minCoeff()) < 1e8);
@@ -357,6 +363,9 @@ double Optimizer::VectorStdvMad(vector<double> vresidues_)
 void Optimizer::PoseOptimization(Frame *pFrame)
 {
     Eigen::Matrix3d K;
+    Eigen::Matrix2d pointSqrtInforMatrix;
+    Eigen::Matrix2d lineSqrtInforMatrix;
+
     K = pFrame->mpCamera->GetCameraIntrinsic();
     size_t frameID = pFrame->GetFrameID();
 
@@ -392,10 +401,12 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         if (!pMapPoint->mmpPointFeature2D[frameID]->mbinlier)
             continue;
 
+        pointSqrtInforMatrix = Eigen::Matrix2d::Identity()*sqrt(pFrame->mvPointInvLevelSigma2[pMapPoint->mmpPointFeature2D[frameID]->mlevel]);
+
         Eigen::Vector2d observed = pMapPoint->mmpPointFeature2D[frameID]->mpixel;
 
         ceres::CostFunction *costfunction = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
-                                                                     observed[0], observed[1]);
+                                                                     observed[0], observed[1], pointSqrtInforMatrix);
 
         problem.AddResidualBlock(costfunction, lossfunction, extrinsic.ptr<double>(), &pMapPoint->mPosew.x());
 
@@ -414,6 +425,8 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         if (!pMapLine->mmpLineFeature2D[frameID]->mbinlier)
             continue;
 
+        lineSqrtInforMatrix = Eigen::Matrix2d::Identity()*sqrt(pFrame->mvLineInvLevelSigma2[pMapLine->mmpLineFeature2D[frameID]->mlevel]);
+
         Eigen::Vector2d observedStart;
         Eigen::Vector2d observedEnd;
         Eigen::Vector3d observedLineCoef;
@@ -423,7 +436,7 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         observedLineCoef = pMapLine->mmpLineFeature2D[frameID]->mLineCoef;
 
         ceres::CostFunction *costFunction = new ReprojectionLineErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
-                                                                         observedStart, observedEnd, observedLineCoef);
+                                                                         observedStart, observedEnd, observedLineCoef, lineSqrtInforMatrix);
 
 //        double cost;
 //        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
@@ -516,6 +529,11 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 &PoseInc,
     vector<LineFeature2D *> vpLineFeature2DInliers;
 
     Eigen::Matrix3d K;
+    Eigen::Matrix2d pointInforMatrix;
+    Eigen::Matrix2d pointSqrtInforMatrix;
+    Eigen::Matrix2d lineInforMatrix;
+    Eigen::Matrix2d lineSqrtInforMatrix;
+
     K = pFrame->mpCamera->GetCameraIntrinsic();
 
     cv::Mat extrinsic(7, 1, CV_64FC1);
@@ -545,11 +563,15 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 &PoseInc,
         if (!vpPointFeature2DLast[i]->mbinlier)
             continue;
 
+        pointSqrtInforMatrix = Eigen::Matrix2d::Identity()*sqrt(pFrame->mvPointInvLevelSigma2[vpPointFeature2DCur[i]->mlevel]);
+
+
         // the outliers are considered in the current frame, not in the last frame
         vpPointFeature2DInliers.emplace_back(vpPointFeature2DCur[i]);
 
         ceres::CostFunction *costfunction = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
-                                                                     vpPointFeature2DCur[i]->mpixel[0], vpPointFeature2DCur[i]->mpixel[1]);
+                                                                     vpPointFeature2DCur[i]->mpixel[0], vpPointFeature2DCur[i]->mpixel[1],
+                                                                     pointSqrtInforMatrix);
 
         problem.AddResidualBlock( costfunction, lossfunction, extrinsic.ptr<double>(), &vpPointFeature2DLast[i]->mPoint3dw.x());
 
@@ -562,12 +584,14 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 &PoseInc,
         if (!vpLineFeature2DLast[i]->mbinlier)
             continue;
 
+        lineSqrtInforMatrix = Eigen::Matrix2d::Identity()*sqrt(pFrame->mvLineInvLevelSigma2[vpLineFeature2DCur[i]->mlevel]);
+
         // the outliers are considered in the current frame, not in the last frame
         vpLineFeature2DInliers.emplace_back(vpLineFeature2DCur[i]);
 
         ceres::CostFunction *costFunction = new ReprojectionLineErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                          vpLineFeature2DCur[i]->mStartpixel,
-                                                                         vpLineFeature2DCur[i]->mEndpixel);
+                                                                         vpLineFeature2DCur[i]->mEndpixel, lineSqrtInforMatrix);
 
         problem.AddResidualBlock(costFunction, lossfunction, extrinsic.ptr<double>(),
                                  &vpLineFeature2DLast[i]->mStartPoint3dw.x(),
