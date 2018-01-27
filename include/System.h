@@ -9,6 +9,7 @@
 #include <vector>
 #include "Camera.h"
 #include "Tracking.h"
+#include "LocalMapping.h"
 
 using namespace std;
 
@@ -18,6 +19,7 @@ namespace PL_VO
 class Camera;
 class Tracking;
 class Map;
+class LocalMapping;
 
 class System
 {
@@ -35,7 +37,11 @@ public:
 private:
     Camera *mpCamera;
     Tracking *mpTracking;
+    LocalMapping *mpLocalMapping;
     Map *mpMap;
+
+    thread* mptLocalMapping;
+    thread* mptViewer;
 
 };// class System
 

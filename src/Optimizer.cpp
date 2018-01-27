@@ -54,7 +54,7 @@ bool ReprojectionErrorSE3::Evaluate(double const *const *parameters, double *res
     residual[0] = fx*p[0]/p[2] + cx - observedx;
     residual[1] = fy*p[1]/p[2] + cy - observedy;
 
-    residual = sqrtInforMatrix*residual;
+//    residual = sqrtInforMatrix*residual;
 
     Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobian;
 
@@ -82,7 +82,7 @@ bool ReprojectionErrorSE3::Evaluate(double const *const *parameters, double *res
             Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor> > Jpoint(jacobians[1]);
             Jpoint = jacobian * quaterd.toRotationMatrix();
 
-//            Jpoint = sqrtInforMatrix*Jpoint;
+//           Jpoint = sqrtInforMatrix*Jpoint;
 
 //            CHECK(fabs(Jpoint.maxCoeff()) < 1e8);
 //            CHECK(fabs(Jpoint.minCoeff()) < 1e8);
@@ -121,8 +121,6 @@ bool ReprojectionLineErrorSE3::Evaluate(double const *const *parameters, double 
     residual[0] = err[0];
     residual[1] = err[1];
 
-    residual = sqrtInforMatrix*residual;
-
     Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobianStart;
     Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobianEnd;
     Eigen::Matrix<double, 2, 3, Eigen::RowMajor> jacobian;
@@ -132,6 +130,8 @@ bool ReprojectionLineErrorSE3::Evaluate(double const *const *parameters, double 
 
     jacobianEnd << fx/Endpoint3dC[2],  0, -fx*Endpoint3dC[0]/Endpoint3dC[2]/Endpoint3dC[2],
                     0, fy/Endpoint3dC[2], -fy*Endpoint3dC[1]/Endpoint3dC[2]/Endpoint3dC[2];
+
+//    residual = sqrtInforMatrix*residual;
 
     if (jacobians != nullptr)
     {
@@ -454,13 +454,13 @@ void Optimizer::PoseOptimization(Frame *pFrame)
 
     RemoveOutliers(problem, 25);
 
-    vector<double> vresiduals;
-    vresiduals = GetReprojectionErrorNorms(problem);
-
-    for (auto residual : vresiduals)
-    {
-        cout << residual << endl;
-    }
+//    vector<double> vresiduals;
+//    vresiduals = GetReprojectionErrorNorms(problem);
+//
+//    for (auto residual : vresiduals)
+//    {
+//        cout << residual << endl;
+//    }
 
     ceres::Solver::Options options;
 //    options.num_threads = 4;
@@ -638,13 +638,13 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 &PoseInc,
              << " Time (s): " << summary.total_time_in_seconds << endl;
     }
 
-    vector<double> vresiduals;
-    vresiduals = GetReprojectionErrorNorms(problem);
-
-    for (auto residual : vresiduals)
-    {
-        cout << residual << endl;
-    }
+//    vector<double> vresiduals;
+//    vresiduals = GetReprojectionErrorNorms(problem);
+//
+//    for (auto residual : vresiduals)
+//    {
+//        cout << residual << endl;
+//    }
 
     vector<double> vPointResiduals, vLineResiduals;
     GetPLReprojectionErrorNorms(problem, &vpPointFeature2DLast[0]->mPoint3dw.x(), &vpLineFeature2DLast[0]->mStartPoint3dw.x(),

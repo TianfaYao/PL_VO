@@ -2,7 +2,6 @@
 // Created by rain on 17-12-29.
 //
 
-#include <opencv2/opencv.hpp>
 #include "Frame.h"
 
 namespace PL_VO

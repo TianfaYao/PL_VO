@@ -20,6 +20,8 @@
 #include "PointFeature.h"
 #include "Converter.h"
 #include "Optimizer.h"
+#include "KeyFrame.h"
+#include "LocalMapping.h"
 
 using namespace std;
 
@@ -31,6 +33,8 @@ class Frame;
 class LineFeature;
 class PointFeature;
 class Map;
+class KeyFrame;
+class LocalMapping;
 
 class Tracking
 {
@@ -51,6 +55,13 @@ public:
 
     void UpdateMapLPfeature(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches);
 
+    void SetLocalMapping(LocalMapping *pLocalMapping);
+
+    bool NeedNewKeyFrame();
+
+    void CreateNewKeyFrame();
+
+
 private:
 
     void UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches);
@@ -60,8 +71,10 @@ private:
     Camera *mpcamera = nullptr;
     Frame *mpcurrentFrame = nullptr;
     Frame *mplastFrame = nullptr;
+    KeyFrame *mpLastKeyFrame = nullptr;
     LineFeature *mpLineFeature = nullptr;
     PointFeature *mpPointFeature = nullptr;
+    LocalMapping *mpLocalMapping = nullptr;
     Map *mpMap = nullptr;
 
     Sophus::SE3 mPoseInc;

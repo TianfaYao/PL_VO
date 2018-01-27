@@ -7,6 +7,7 @@
 
 #include <future>
 #include <line_descriptor_custom.hpp>
+#include <opencv2/opencv.hpp>
 #include <sophus/se3.h>
 #include <sophus/so3.h>
 #include "LineFeature.h"
@@ -26,6 +27,7 @@ struct LineFeature2D;
 struct PointFeature2D;
 class MapPoint;
 class MapLine;
+class KeyFrame;
 
 class Frame
 {
@@ -68,6 +70,7 @@ public:
     Camera *mpCamera = nullptr;
     LineFeature *mpLineFeature = nullptr;
     PointFeature *mpPointFeature = nullptr;
+    KeyFrame *mpKeyFrame = nullptr;
 
     double mtimeStamp;
 
@@ -93,6 +96,12 @@ public:
     vector<PointFeature2D*> mvpPointFeature2D;
     vector<MapPoint*> mvpMapPoint;
     vector<MapLine*> mvpMapLine;
+
+    int mpointinliersnum = 0;
+    int mlineinliersnum = 0;
+    int minliersnum = 0;
+
+    bool mbisKeyFrame = false;
 
 private:
 

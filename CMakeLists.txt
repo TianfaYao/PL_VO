@@ -38,7 +38,8 @@ add_library(${PROJECT_NAME} SHARED
     src/System.cpp
     src/Map.cpp
     src/Optimizer.cpp
-)
+    src/KeyFrame.cpp
+    src/LocalMapping.cpp)
 
 target_link_libraries(${PROJECT_NAME}
     ${OpenCV_LIBRARIES}

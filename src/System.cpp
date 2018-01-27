@@ -11,9 +11,14 @@ System::System(const string &strSettingsFile)
 {
     mpCamera = new Camera(strSettingsFile);
     mpTracking = new Tracking(mpCamera);
-    mpMap = new(Map);
+    mpMap = new Map;
+    mpLocalMapping = new LocalMapping(mpMap);
 
+    mpLocalMapping->SetTracking(mpTracking);
     mpTracking->SetMap(mpMap);
+    mpTracking->SetLocalMapping(mpLocalMapping);
+
+    mptLocalMapping = new thread(&LocalMapping::Run, mpLocalMapping);
 }
 
 System::~System()
@@ -35,7 +40,7 @@ void System::SaveTrajectory(const string &filename)
 
     ofstreamer << fixed;
 
-    for (auto frame: mpMap->mlpFrames)
+    for (auto frame: mpMap->mvpFrames)
     {
         ofstreamer << setprecision(6) << frame->mtimeStamp << " " << frame->Tcw.translation().transpose() << endl;
     }

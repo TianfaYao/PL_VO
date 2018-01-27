@@ -19,6 +19,7 @@ namespace PL_VO
 class Frame;
 class MapPoint;
 class MapLine;
+class KeyFrame;
 struct PointFeature2D;
 struct LineFeature2D;
 
@@ -103,13 +104,17 @@ public:
         }
         return cnt;
     }
+    vector<Frame*> GetObservedFrame();
 
     size_t  mID = -1;
     Eigen::Vector3d mPosew = Eigen::Vector3d(0, 0, 0);
     cv::Mat mdesc = cv::Mat(1, 32, CV_8UC1);
     bool mbbad = false;
-    list<Frame*> mlpFrameinvert;
+    vector<Frame*> mvpFrameinvert;
     map<size_t, PointFeature2D*> mmpPointFeature2D;
+
+private:
+    mutex mMutexFeatures;
 
 }; // class MapPoint
 
@@ -130,14 +135,18 @@ public:
         }
         return cnt;
     }
+    vector<Frame*> GetObservedFrame();
 
     size_t mID = -1;
     Eigen::Vector3d mPoseStartw = Eigen::Vector3d(0, 0, 0);
     Eigen::Vector3d mPoseEndw  = Eigen::Vector3d(0, 0, 0);
     bool mbbad = false;
     cv::Mat mdesc = cv::Mat(1, 32, CV_8UC1);
-    list<Frame*> mlpFrameinvert;
+    vector<Frame*> mvpFrameinvert;
     map<size_t, LineFeature2D*> mmpLineFeature2D;
+
+private:
+    mutex mMutexFeatures;
 
 }; // class MapLine
 
@@ -147,9 +156,27 @@ public:
 
     Map();
 
-    list<Frame*> mlpFrames;
-    vector<MapLine*> mvpMapLine;
-    vector<MapPoint*> mvpMapPoint;
+    vector<KeyFrame*> GetAllKeyFrames();
+    vector<MapPoint*> GetAllMapPoints();
+    vector<MapLine*> GetAllMapLines();
+
+    void AddKeyFrame(KeyFrame *pKeyFrame);
+    void AddMapPoint(MapPoint *pMapPoint);
+    void AddMapLine(MapLine *pMapLine);
+
+    void EraseMapPoint(MapPoint* pMapPoint);
+    void EraseMapLine(MapLine* pMapLine);
+    void EraseKeyFrame(KeyFrame* pKeyFrame);
+
+    vector<Frame*> mvpFrames;
+
+protected:
+
+    set<MapLine*> mspMapLine;
+    set<MapPoint*> mspMapPoint;
+    set<KeyFrame*> mspKeyFrame;
+
+    mutex mMutexMap;
 
 }; // class Map
 

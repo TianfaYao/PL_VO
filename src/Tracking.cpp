@@ -114,7 +114,10 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
         cv::waitKey(5);
     }
 
-    mpMap->mlpFrames.push_back(mpcurrentFrame);
+    if (NeedNewKeyFrame())
+        CreateNewKeyFrame();
+
+    mpMap->mvpFrames.push_back(mpcurrentFrame);
 
     mplastFrame = new Frame(*mpcurrentFrame);
     mlastimageGrays = mimageGray.clone();
@@ -205,7 +208,7 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
             if (!pPointFeature->mPoint3dw.isZero())
                 pMapPoint->mPosew = mplastFrame->Tcw.inverse()*pPointFeature->mPoint3dw;
             pMapPoint->mmpPointFeature2D[mplastFrame->GetFrameID()] = pPointFeature;
-            pMapPoint->mlpFrameinvert.push_back(mplastFrame);
+            pMapPoint->mvpFrameinvert.push_back(mplastFrame);
 
             mplastFrame->mvpMapPoint.push_back(pMapPoint);
             pPointFeature->mpMapPoint = pMapPoint;
@@ -221,7 +224,7 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
             }
 
             pMapPoint->mmpPointFeature2D[mpcurrentFrame->GetFrameID()] = pcurPointFeature;
-            pMapPoint->mlpFrameinvert.push_back(mpcurrentFrame);
+            pMapPoint->mvpFrameinvert.push_back(mpcurrentFrame);
 
             mpcurrentFrame->mvpMapPoint.push_back(pMapPoint);
             pcurPointFeature->mpMapPoint = pMapPoint;
@@ -246,7 +249,7 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
             }
 
             pMapPoint->mmpPointFeature2D[mpcurrentFrame->GetFrameID()] = pcurPointFeature;
-            pMapPoint->mlpFrameinvert.push_back(mpcurrentFrame);
+            pMapPoint->mvpFrameinvert.push_back(mpcurrentFrame);
 
             if (pMapPoint->mPosew.isZero())
             {
@@ -290,7 +293,7 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
             if (!pLineFeature->mEndPoint3dw.isZero())
                 pMapLine->mPoseEndw = mplastFrame->Tcw.inverse()*pLineFeature->mEndPoint3dw;
 
-            pMapLine->mlpFrameinvert.push_back(mplastFrame);
+            pMapLine->mvpFrameinvert.push_back(mplastFrame);
             pMapLine->mmpLineFeature2D[mplastFrame->GetFrameID()] = pLineFeature;
 
             mplastFrame->mvpMapLine.push_back(pMapLine);
@@ -307,7 +310,7 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
             }
 
             pMapLine->mmpLineFeature2D[mpcurrentFrame->GetFrameID()] = pcurLineFeature;
-            pMapLine->mlpFrameinvert.push_back(mpcurrentFrame);
+            pMapLine->mvpFrameinvert.push_back(mpcurrentFrame);
 
             mpcurrentFrame->mvpMapLine.push_back(pMapLine);
             pcurLineFeature->mpMapLine = pMapLine;
@@ -332,7 +335,7 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
             }
 
             pMapLine->mmpLineFeature2D[mpcurrentFrame->GetFrameID()] = pcurLineFeature;
-            pMapLine->mlpFrameinvert.push_back(mpcurrentFrame);
+            pMapLine->mvpFrameinvert.push_back(mpcurrentFrame);
 
             if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
             {
@@ -368,6 +371,68 @@ void Tracking::UpdateMapLPfeature(const vector<cv::DMatch> &vpointMatches, const
         UpdateMapLinefeature(vlineMatches);
         UpdateMapPointfeature(vpointMatches);
     }
+}
+
+void Tracking::SetLocalMapping(LocalMapping *pLocalMapping)
+{
+    mpLocalMapping = pLocalMapping;
+}
+
+bool Tracking::NeedNewKeyFrame()
+{
+//    if (mpcurrentFrame->GetFrameID() == 1)
+//        return true;
+
+    int inlierscnt = 0;
+
+    for (auto pPointFeature2D : mpcurrentFrame->mvpPointFeature2D)
+    {
+        if (pPointFeature2D == nullptr)
+            continue;
+
+        if (pPointFeature2D->mbinlier)
+            inlierscnt++;
+    }
+
+    mpcurrentFrame->mpointinliersnum = inlierscnt;
+
+    inlierscnt = 0;
+    for (auto pLineFeature2D : mpcurrentFrame->mvpLineFeature2D)
+    {
+        if (pLineFeature2D == nullptr)
+            continue;
+
+        if (pLineFeature2D->mbinlier)
+            inlierscnt++;
+    }
+
+    mpcurrentFrame->mlineinliersnum = inlierscnt;
+
+    mpcurrentFrame->minliersnum = mpcurrentFrame->mpointinliersnum + mpcurrentFrame->mlineinliersnum;
+
+    // TODO when test in the no texture datasets, the threshold should be reduced
+    if (mpcurrentFrame->minliersnum < 200)
+        return false;
+
+    double r = mPoseInc.so3().log().norm();
+    double t = mPoseInc.translation().norm();
+    double T = r + 0.65*t;
+
+    if (T < 0.03)
+        return false;
+
+    mpcurrentFrame->mbisKeyFrame = true;
+
+    return true;
+}
+
+void Tracking::CreateNewKeyFrame()
+{
+    KeyFrame *pKeyFrame = new KeyFrame(*mpcurrentFrame, mpMap);
+
+    mpcurrentFrame->mpKeyFrame = pKeyFrame;
+
+    mpLocalMapping->InsertKeyFrame(pKeyFrame);
 }
 
 
