@@ -536,6 +536,18 @@ void Frame::UnprojectStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> 
     }
 }
 
+void Frame::SetKeyFrameFlag(bool flag)
+{
+    unique_lock<mutex> lock(mMutexPose);
+    mbisKeyFrame = true;
+}
+
+bool Frame::isKeyFrame()
+{
+    unique_lock<mutex> lock(mMutexPose);
+    return mbisKeyFrame;
+}
+
 void Frame::MapLinePointShow()
 {
     cout << "the frame MapPoint debug show: " << "frame ID: " << GetFrameID() << " frame timestamp: " << to_string(mtimeStamp) << endl;

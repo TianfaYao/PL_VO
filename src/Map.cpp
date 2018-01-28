@@ -17,6 +17,13 @@ vector<Frame*> MapPoint::GetObservedFrame()
     return mvpFrameinvert;
 }
 
+bool MapPoint::isBad()
+{
+    unique_lock<mutex> lock(mMutexFeatures);
+    unique_lock<mutex> lock2(mMutexPos);
+    return mbBad;
+}
+
 
 MapLine::MapLine()
 {
@@ -26,6 +33,13 @@ vector<Frame*> MapLine::GetObservedFrame()
 {
     unique_lock<mutex> lock(mMutexFeatures);
     return mvpFrameinvert;
+}
+
+bool MapLine::isBad()
+{
+    unique_lock<mutex> lock(mMutexFeatures);
+    unique_lock<mutex> lock2(mMutexPos);
+    return mbBad;
 }
 
 Map::Map()

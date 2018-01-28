@@ -28,7 +28,6 @@ struct PointFeature2D
     PointFeature2D(const Eigen::Vector2d &pixel, const int &level=0, const double &score=0, const int &idxMatch=-1)
                    : mpixel(pixel), mlevel(level), mscore(score), midxMatch(idxMatch)
     {
-
     }
 
     Frame *mpFrame = nullptr;
@@ -94,6 +93,7 @@ public:
     MapPoint();
 
     int GetObservedNum(){ return mmpPointFeature2D.size();}
+
     int GetObservedInliersNum()
     {
         int cnt = 0;
@@ -104,17 +104,22 @@ public:
         }
         return cnt;
     }
+
     vector<Frame*> GetObservedFrame();
 
+    bool isBad();
+
     size_t  mID = -1;
+    size_t mBALocalForKF;
     Eigen::Vector3d mPosew = Eigen::Vector3d(0, 0, 0);
     cv::Mat mdesc = cv::Mat(1, 32, CV_8UC1);
-    bool mbbad = false;
+    bool mbBad = false;
     vector<Frame*> mvpFrameinvert;
     map<size_t, PointFeature2D*> mmpPointFeature2D;
 
 private:
     mutex mMutexFeatures;
+    mutex mMutexPos;
 
 }; // class MapPoint
 
@@ -125,6 +130,7 @@ public:
     MapLine();
 
     int GetObservedNum(){ return mmpLineFeature2D.size();}
+
     int GetObservedInliersNum()
     {
         int cnt = 0;
@@ -135,18 +141,23 @@ public:
         }
         return cnt;
     }
+
     vector<Frame*> GetObservedFrame();
 
+    bool isBad();
+
     size_t mID = -1;
+    size_t mBALocalForKF;
     Eigen::Vector3d mPoseStartw = Eigen::Vector3d(0, 0, 0);
     Eigen::Vector3d mPoseEndw  = Eigen::Vector3d(0, 0, 0);
-    bool mbbad = false;
+    bool mbBad = false;
     cv::Mat mdesc = cv::Mat(1, 32, CV_8UC1);
     vector<Frame*> mvpFrameinvert;
     map<size_t, LineFeature2D*> mmpLineFeature2D;
 
 private:
     mutex mMutexFeatures;
+    mutex mMutexPos;
 
 }; // class MapLine
 

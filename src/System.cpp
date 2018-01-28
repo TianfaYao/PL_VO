@@ -18,7 +18,7 @@ System::System(const string &strSettingsFile)
     mpTracking->SetMap(mpMap);
     mpTracking->SetLocalMapping(mpLocalMapping);
 
-    mptLocalMapping = new thread(&LocalMapping::Run, mpLocalMapping);
+//    mptLocalMapping = new thread(&LocalMapping::Run, mpLocalMapping);
 }
 
 System::~System()
@@ -42,7 +42,7 @@ void System::SaveTrajectory(const string &filename)
 
     for (auto frame: mpMap->mvpFrames)
     {
-        ofstreamer << setprecision(6) << frame->mtimeStamp << " " << frame->Tcw.translation().transpose() << endl;
+        ofstreamer << setprecision(6) << frame->mtimeStamp << " " << frame->Tcw.inverse().translation().transpose() << endl;
     }
 
     ofstreamer.close();

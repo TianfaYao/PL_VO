@@ -65,6 +65,10 @@ public:
     void UnprojectStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> vpointMatches, const vector<cv::DMatch> vlineMatches,
                          const bool &bcurframe);
 
+    void SetKeyFrameFlag(bool flag);
+
+    bool isKeyFrame();
+
     void MapLinePointShow();
 
     Camera *mpCamera = nullptr;
@@ -117,6 +121,8 @@ private:
     size_t mID;
     int mImageHeight;
     int mImageWidth;
+
+    mutex mMutexPose;
 
 }; // class Frame
 

@@ -2,6 +2,7 @@
 // Created by rain on 18-1-3.
 //
 
+#include <KeyFrame.h>
 #include "Optimizer.h"
 
 namespace PL_VO
@@ -576,6 +577,8 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 &PoseInc,
         problem.AddResidualBlock( costfunction, lossfunction, extrinsic.ptr<double>(), &vpPointFeature2DLast[i]->mPoint3dw.x());
 
         problem.AddParameterBlock(&vpPointFeature2DLast[i]->mPoint3dw.x(), 3);
+
+        problem.SetParameterBlockConstant(&vpPointFeature2DLast[i]->mPoint3dw.x());
     }
 
     // add the MapLine parameterblocks and residuals
@@ -669,5 +672,131 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 &PoseInc,
     }
 
 } // Sophus::SE3 Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 PoseInc)
+
+void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map *pMap)
+{
+    list<KeyFrame*> lLocalKeyFrames;
+
+    lLocalKeyFrames.push_back(pKeyFrame);
+    pKeyFrame->mBALocalForKF = pKeyFrame->GetFrameID();
+
+    const vector<KeyFrame*> vNeighborKFs = pKeyFrame->GetVectorCovisibleKeyFrames();
+
+    for (auto pKFi : vNeighborKFs)
+    {
+        pKFi->mBALocalForKF = pKeyFrame->GetFrameID();
+
+        if (!pKFi->isBad())
+            lLocalKeyFrames.push_back(pKFi);
+    }
+
+    list<MapPoint*> lLocalMapPoints;
+    list<MapLine*> lLocalMapLines;
+
+    for (auto pKFi : lLocalKeyFrames)
+    {
+        vector<MapPoint*> vpMPs = pKFi->GetMapPointMatches();
+        for (auto pMP : vpMPs)
+        {
+            CHECK_NOTNULL(pMP);
+            if (pMP)
+            {
+                if (!pMP->isBad())
+                {
+                    if (pMP->mBALocalForKF != pKeyFrame->GetFrameID())
+                    {
+                        lLocalMapPoints.push_back(pMP);
+                        pMP->mBALocalForKF = pKeyFrame->GetFrameID();
+                    }
+                }
+            }
+        }
+
+        vector<MapLine*> vpMLs = pKFi->GetMapLineMatches();
+        for (auto pML : vpMLs)
+        {
+            CHECK_NOTNULL(pML);
+            if (pML)
+            {
+                if (pML->isBad())
+                {
+                    if (pML->mBALocalForKF != pKeyFrame->GetFrameID())
+                    {
+                        lLocalMapLines.push_back(pML);
+                        pML->mBALocalForKF = pKeyFrame->GetFrameID();
+                    }
+                }
+            }
+        }
+
+    } // for (auto pKFi : lLocalKeyFrames)
+
+    list<KeyFrame*> lFixedCameras;
+    for (auto pMP : lLocalMapPoints)
+    {
+        vector<Frame*> observations = pMP->GetObservedFrame();
+
+        for (auto pFrame : observations)
+        {
+            if (!pFrame->isKeyFrame())
+                continue;
+
+            KeyFrame* pKFi = pFrame->mpKeyFrame;
+
+            if (pKFi->mBALocalForKF != pKeyFrame->GetFrameID() && pKFi->mBAFixedForKF != pKeyFrame->GetFrameID())
+            {
+                pKFi->mBAFixedForKF = pKeyFrame->GetFrameID();
+                if (!pKFi->isBad())
+                    lFixedCameras.push_back(pKFi);
+            }
+        }
+    }
+
+    for (auto pML : lLocalMapLines)
+    {
+        vector<Frame*> observations = pML->GetObservedFrame();
+
+        for (auto pFrame : observations)
+        {
+            if (!pFrame->isKeyFrame())
+                continue;
+
+            KeyFrame* pKFi = pFrame->mpKeyFrame;
+
+            if (pKFi->mBAFixedForKF != pKeyFrame->GetFrameID() && pKFi->mBAFixedForKF != pKeyFrame->GetFrameID())
+            {
+                pKFi->mBAFixedForKF = pKeyFrame->GetFrameID();
+                if (!pKFi->isBad())
+                    lFixedCameras.push_back(pKFi);
+            }
+        }
+    }
+
+    ceres::Problem problem;
+
+//    for (auto pMapPoint : lLocalMapPoints)
+//    {
+//        if (pMapPoint->mPosew.isZero())
+//            continue;
+//
+//        if (pMapPoint->GetObservedNum() <= 2)
+//            continue;
+//
+//        if (!pMapPoint->mmpPointFeature2D[frameID]->mbinlier)
+//            continue;
+//
+//        pointSqrtInforMatrix = Eigen::Matrix2d::Identity()*sqrt(pFrame->mvPointInvLevelSigma2[pMapPoint->mmpPointFeature2D[frameID]->mlevel]);
+//
+//        Eigen::Vector2d observed = pMapPoint->mmpPointFeature2D[frameID]->mpixel;
+//
+//        ceres::CostFunction *costfunction = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
+//                                                                     observed[0], observed[1], pointSqrtInforMatrix);
+//
+//        problem.AddResidualBlock(costfunction, lossfunction, extrinsic.ptr<double>(), &pMapPoint->mPosew.x());
+//
+//        problem.AddParameterBlock(&pMapPoint->mPosew.x(), 3);
+//
+//    }
+} // void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map *pMap)
 
 } // namespace PL_VO

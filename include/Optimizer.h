@@ -140,6 +140,8 @@ public:
                                       vector<PointFeature2D *> &vpPointFeature2DCur,
                                       vector<LineFeature2D *> &vpLineFeature2DLast,
                                       vector<LineFeature2D *> &vpLineFeature2DCur);
+
+    static void LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map *pMap);
 }; // class Optimizer
 
 } //namespace PL_VO

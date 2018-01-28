@@ -421,7 +421,7 @@ bool Tracking::NeedNewKeyFrame()
     if (T < 0.03)
         return false;
 
-    mpcurrentFrame->mbisKeyFrame = true;
+    mpcurrentFrame->SetKeyFrameFlag(true);
 
     return true;
 }

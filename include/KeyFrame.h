@@ -33,10 +33,17 @@ public:
 
     void UpdateConnections();
 
+    vector<KeyFrame*> GetVectorCovisibleKeyFrames();
+
+    vector<MapPoint*> GetMapPointMatches();
+    vector<MapLine*> GetMapLineMatches();
+
+    bool isBad();
 
     Camera *mpCamera = nullptr;
 
     double mtimeStamp;
+
     Sophus::SE3 Tcw;
     Sophus::SE3 Twc;
 
@@ -58,7 +65,12 @@ public:
     set<KeyFrame*> mspChildrens;
     set<KeyFrame*> mspLoopEdges;
 
+    size_t mBALocalForKF;
+    size_t mBAFixedForKF;
+
 private:
+
+    bool mbBad;
 
     size_t mID;
     mutex mMutexPose;

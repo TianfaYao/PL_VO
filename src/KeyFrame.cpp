@@ -26,6 +26,7 @@ KeyFrame::KeyFrame(Frame &frame, Map *pMap)
     mvpLineFeature2D.assign(frame.mvpLineFeature2D.begin(), frame.mvpLineFeature2D.end());
 
     mbFirstConnection = true;
+    mbBad = false;
 }
 
 size_t KeyFrame::GetFrameID()
@@ -98,7 +99,7 @@ void KeyFrame::UpdateConnections()
         if (!pMapPoint)
             continue;
 
-        if (pMapPoint->mbbad)
+        if (pMapPoint->isBad())
             continue;
 
         vector<Frame *> vpObservedFrame = pMapPoint->GetObservedFrame();
@@ -108,7 +109,7 @@ void KeyFrame::UpdateConnections()
             if (pObservedFrame->GetFrameID() == mID)
                 continue;
 
-            if (!pObservedFrame->mbisKeyFrame)
+            if (!pObservedFrame->isKeyFrame())
                 continue;
 
             KFcounter[pObservedFrame]++;
@@ -121,7 +122,7 @@ void KeyFrame::UpdateConnections()
         if (!pMapLine)
             continue;
 
-        if (pMapLine->mbbad)
+        if (pMapLine->isBad())
             continue;
 
         vector<Frame *> vpObservedFrame = pMapLine->GetObservedFrame();
@@ -131,7 +132,7 @@ void KeyFrame::UpdateConnections()
             if (pObservedFrame->GetFrameID() == mID)
                 continue;
 
-            if (!pObservedFrame->mbisKeyFrame)
+            if (!pObservedFrame->isKeyFrame())
                 continue;
 
             KFcounter[pObservedFrame]++;
@@ -204,5 +205,29 @@ void KeyFrame::UpdateConnections()
         }
     }
 } // void KeyFrame::UpdateConnections()
+
+vector<KeyFrame*> KeyFrame::GetVectorCovisibleKeyFrames()
+{
+    unique_lock<mutex> lock(mMutexConnections);
+    return mvpOrderedConnectedKeyFrames;
+}
+
+vector<MapPoint*> KeyFrame::GetMapPointMatches()
+{
+    unique_lock<mutex> lock(mMutexFeatures);
+    return mvpMapPoint;
+}
+
+vector<MapLine*> KeyFrame::GetMapLineMatches()
+{
+    unique_lock<mutex> lock(mMutexFeatures);
+    return mvpMapLine;
+}
+
+bool KeyFrame::isBad()
+{
+    unique_lock<mutex> lock(mMutexConnections);
+    return mbBad;
+}
 
 } // namespace PL_VO
