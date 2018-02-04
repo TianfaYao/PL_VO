@@ -6,6 +6,7 @@
 #define PL_VO_LOCALMAPPING_H
 
 #include "KeyFrame.h"
+#include "Optimizer.h"
 
 namespace PL_VO
 {

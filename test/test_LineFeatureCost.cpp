@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     PL_VO::Frame *pFrame;
     PL_VO::Camera *pCamera = new PL_VO::Camera("../Example/TUM2.yaml");
 
-    Sophus::SE3 Tcw;
+    Sophus::SE3d Tcw;
 
     Tcw.setQuaternion(Eigen::Quaterniond(0.99998091547793622, 0.004081818193394318, 0.0036343218945305089, 0.0028808235821990726));
     Tcw.translation() =  Eigen::Vector3d(-0.00040315662988363505, -0.002429691464738472,  0.005346058084408755);

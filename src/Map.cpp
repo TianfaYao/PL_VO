@@ -17,6 +17,12 @@ vector<Frame*> MapPoint::GetObservedFrame()
     return mvpFrameinvert;
 }
 
+Eigen::Vector3d MapPoint::GetPose()
+{
+    unique_lock<mutex> lock(mMutexPos);
+    return mPosew;
+}
+
 bool MapPoint::isBad()
 {
     unique_lock<mutex> lock(mMutexFeatures);
@@ -33,6 +39,18 @@ vector<Frame*> MapLine::GetObservedFrame()
 {
     unique_lock<mutex> lock(mMutexFeatures);
     return mvpFrameinvert;
+}
+
+Eigen::Vector3d MapLine::GetPoseStart()
+{
+    unique_lock<mutex> lock(mMutexPos);
+    return mPoseStartw;
+}
+
+Eigen::Vector3d MapLine::GetPoseEnd()
+{
+    unique_lock<mutex> lock(mMutexPos);
+    return mPoseEndw;
 }
 
 bool MapLine::isBad()

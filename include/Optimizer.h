@@ -9,8 +9,8 @@
 #include <eigen3/Eigen/Dense>
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
-#include <sophus/se3.h>
-#include <sophus/so3.h>
+#include <sophus/se3.hpp>
+#include <sophus/so3.hpp>
 #include "Converter.h"
 #include "Frame.h"
 
@@ -135,7 +135,7 @@ public:
 
     static void PoseOptimization(Frame *pFrame);
 
-    static void PnPResultOptimization(Frame *pFrame, Sophus::SE3 &PoseInc,
+    static void PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
                                       vector<PointFeature2D *> &vpPointFeature2DLast,
                                       vector<PointFeature2D *> &vpPointFeature2DCur,
                                       vector<LineFeature2D *> &vpLineFeature2DLast,

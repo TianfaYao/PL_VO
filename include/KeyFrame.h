@@ -37,15 +37,17 @@ public:
 
     vector<MapPoint*> GetMapPointMatches();
     vector<MapLine*> GetMapLineMatches();
+    Sophus::SE3d GetPose();
 
     bool isBad();
 
     Camera *mpCamera = nullptr;
+    Map *mpMap = nullptr;
 
     double mtimeStamp;
 
-    Sophus::SE3 Tcw;
-    Sophus::SE3 Twc;
+    Sophus::SE3d Tcw;
+    Sophus::SE3d Twc;
 
     vector<cv::KeyPoint> mvKeyPoint;
     vector<cv::line_descriptor::KeyLine> mvKeyLine;

@@ -10,6 +10,8 @@
 #include <list>
 #include <eigen3/Eigen/Dense>
 #include <opencv2/opencv.hpp>
+#include <sophus/se3.hpp>
+#include <sophus/so3.hpp>
 
 namespace PL_VO
 {
@@ -40,6 +42,8 @@ public:
 
     static Eigen::Matrix<double, 4, 4> quatLeftproduct(const Eigen::Quaterniond &q0);
     static Eigen::Matrix<double, 4, 4> quatRightproduct(const Eigen::Quaterniond &q0);
+
+    static Eigen::Matrix<double, 7, 1> toVector7d(Sophus::SE3d SE3_);
 
 }; // class Converter
 

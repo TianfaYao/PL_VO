@@ -8,8 +8,8 @@
 #include <future>
 #include <line_descriptor_custom.hpp>
 #include <opencv2/opencv.hpp>
-#include <sophus/se3.h>
-#include <sophus/so3.h>
+#include <sophus/se3.hpp>
+#include <sophus/so3.hpp>
 #include "LineFeature.h"
 #include "PointFeature.h"
 #include "Camera.h"
@@ -78,8 +78,8 @@ public:
 
     double mtimeStamp;
 
-    Sophus::SE3 Tcw;
-    Sophus::SE3 Twc;
+    Sophus::SE3d Tcw;
+    Sophus::SE3d Twc;
 
     cv::Mat mpointDesc;
     cv::Mat mlineDesc;

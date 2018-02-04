@@ -10,6 +10,7 @@ namespace PL_VO
 KeyFrame::KeyFrame(Frame &frame, Map *pMap)
 {
     mpCamera = frame.mpCamera;
+    mpMap = pMap;
 
     mID = frame.GetFrameID();
     mtimeStamp = frame.mtimeStamp;
@@ -222,6 +223,12 @@ vector<MapLine*> KeyFrame::GetMapLineMatches()
 {
     unique_lock<mutex> lock(mMutexFeatures);
     return mvpMapLine;
+}
+
+Sophus::SE3d KeyFrame::GetPose()
+{
+    unique_lock<mutex> lock(mMutexPose);
+    return Tcw;
 }
 
 bool KeyFrame::isBad()

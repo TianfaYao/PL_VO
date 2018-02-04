@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
     pcurrentFrame->UndistortKeyFeature();
     plastFrame->UndistortKeyFeature();
 
-    {
+//    {
 //        for (size_t i = 0; i < pcurrentFrame->mvKeyPoint.size(); i++)
 //        {
 //            cv::circle(imagepointshow, pcurrentFrame->mvKeyPoint[i].pt, 2, cv::Scalar(255, 0, 0), 2);
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 //
 //        cv::imshow(" image lineun show ", imagelineunshow);
 //        cv::imshow(" image line show ", imagelineshow);
-    }
+//    }
 
     {
         vector<cv::Point3d> vpts3d;
@@ -114,10 +114,10 @@ int main(int argc, char* argv[])
         cv::solvePnPRansac(vpts3d, vpts2d, PL_VO::Converter::toCvMat(pcamera->GetCameraIntrinsic()), cv::Mat(),
                            rvec, tvec, false, 100, 4.0, 0.99, inliers);
 
-        pcurrentFrame->Tcw = Sophus::SE3(Sophus::SO3(rvec.at<double>(0,0), rvec.at<double>(1,0), rvec.at<double>(2,0)),
-                                         PL_VO::Converter::toVector3d(tvec));
+        pcurrentFrame->Tcw = Sophus::SE3d(Sophus::SO3d::exp(Eigen::Vector3d(rvec.at<double>(0,0), rvec.at<double>(1,0), rvec.at<double>(2,0))),
+                                          PL_VO::Converter::toVector3d(tvec));
 
-        cout << pcurrentFrame->Tcw << endl;
+        cout << pcurrentFrame->Tcw.matrix3x4() << endl;
     } // -0.12910648864000002  -0.011553516588 0.056891304389999994
 
 

@@ -106,6 +106,7 @@ public:
     }
 
     vector<Frame*> GetObservedFrame();
+    Eigen::Vector3d GetPose();
 
     bool isBad();
 
@@ -143,6 +144,8 @@ public:
     }
 
     vector<Frame*> GetObservedFrame();
+    Eigen::Vector3d GetPoseStart();
+    Eigen::Vector3d GetPoseEnd();
 
     bool isBad();
 

@@ -18,7 +18,7 @@ System::System(const string &strSettingsFile)
     mpTracking->SetMap(mpMap);
     mpTracking->SetLocalMapping(mpLocalMapping);
 
-//    mptLocalMapping = new thread(&LocalMapping::Run, mpLocalMapping);
+    mptLocalMapping = new thread(&LocalMapping::Run, mpLocalMapping);
 }
 
 System::~System()

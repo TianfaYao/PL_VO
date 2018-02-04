@@ -198,4 +198,13 @@ Eigen::Matrix<double, 4, 4> Converter::quatRightproduct(const Eigen::Quaterniond
     return qR;
 }
 
+Eigen::Matrix<double, 7, 1> Converter::toVector7d(Sophus::SE3d SE3_)
+{
+    Eigen::Matrix<double, 7, 1> vector7d;
+    vector7d.topRows(4) = SE3_.unit_quaternion().coeffs();
+    vector7d.bottomRows(3) = SE3_.translation();
+
+    return vector7d;
+}
+
 } // namesapce RAIN_VIO

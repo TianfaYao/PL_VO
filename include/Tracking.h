@@ -77,7 +77,7 @@ private:
     LocalMapping *mpLocalMapping = nullptr;
     Map *mpMap = nullptr;
 
-    Sophus::SE3 mPoseInc;
+    Sophus::SE3d mPoseInc;
 
     cv::Mat mimageGray;
     cv::Mat mimagergb;

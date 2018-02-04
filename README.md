@@ -47,9 +47,8 @@ $ sudo make install
 Dowload and install instructions can be found at: http://www.ceres-solver.org/installation.html
 
 ### Sophus
-```sh
-$ git checkeout a621ff2
-```
+
+Tested with Sophus 9a49221
 
 ## 3.Building
 ```sh

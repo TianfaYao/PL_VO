@@ -100,7 +100,8 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
 
         Optimizer::PoseOptimization(mpcurrentFrame);
 
-        cout << mpcurrentFrame->Tcw << endl;
+        cout << mpcurrentFrame->Tcw.unit_quaternion().coeffs() << endl;
+        cout << mpcurrentFrame->Tcw.translation() << endl;
 
         cv::Mat showimg;
         cv::drawMatches(mlastimagergb, mplastFrame->mvKeyPoint, mimagergb, mpcurrentFrame->mvKeyPoint,
@@ -111,7 +112,7 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
                                              vlineRefineMatches, showimg,  cv::Scalar::all(-1), cv::Scalar::all(-1), mask,
                                              cv::line_descriptor::DrawLinesMatchesFlags::DEFAULT);
         cv::imshow(" ", showimg);
-        cv::waitKey(5);
+        cv::waitKey(0);
     }
 
     if (NeedNewKeyFrame())
@@ -176,12 +177,12 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
         vpLineFeature2DCur.emplace_back(pLineFeature2DCur);
     }
 
-    cout << "PoseInc: " << endl << mPoseInc << endl;
+//    cout << "PoseInc: " << endl << mPoseInc << endl;
 
     Optimizer::PnPResultOptimization(mpcurrentFrame, mPoseInc, vpPointFeature2DLast, vpPointFeature2DCur,
                                      vpLineFeature2DLast, vpLineFeature2DCur);
 
-    cout << "Optimization PoseInc: " << endl << mPoseInc << endl;
+//    cout << "Optimization PoseInc: " << endl << mPoseInc << endl;
 
     mpcurrentFrame->Tcw = mplastFrame->Tcw*mPoseInc;
 

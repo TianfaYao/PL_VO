@@ -25,6 +25,8 @@ void LocalMapping::Run()
         {
             ProcessNewKeyFrame();
 
+            bool bstopflag = true;
+            Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &bstopflag, mpMap);
         }
         usleep(3000);
     }
