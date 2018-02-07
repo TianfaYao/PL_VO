@@ -113,6 +113,7 @@ public:
     size_t  mID = -1;
     size_t mBALocalForKF;
     Eigen::Vector3d mPosew = Eigen::Vector3d(0, 0, 0);
+    Eigen::Vector3d mPosew_ = Eigen::Vector3d(0, 0, 0);
     cv::Mat mdesc = cv::Mat(1, 32, CV_8UC1);
     bool mbBad = false;
     vector<Frame*> mvpFrameinvert;
@@ -153,6 +154,9 @@ public:
     size_t mBALocalForKF;
     Eigen::Vector3d mPoseStartw = Eigen::Vector3d(0, 0, 0);
     Eigen::Vector3d mPoseEndw  = Eigen::Vector3d(0, 0, 0);
+
+    Eigen::Vector3d mPoseStartw_ = Eigen::Vector3d(0, 0, 0);
+    Eigen::Vector3d mPoseEndw_  = Eigen::Vector3d(0, 0, 0);
     bool mbBad = false;
     cv::Mat mdesc = cv::Mat(1, 32, CV_8UC1);
     vector<Frame*> mvpFrameinvert;

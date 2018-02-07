@@ -52,10 +52,6 @@ bool ReprojectionErrorSE3::Evaluate(double const *const *parameters, double *res
 
     Eigen::Vector3d p = quaterd * point + trans;
 
-//    cout << "p: " << p << endl;
-//    cout << "quat: " << quaterd.coeffs() << endl;
-//    cout << "trans: " << trans << endl;
-
     residual[0] = fx*p[0]/p[2] + cx - observedx;
     residual[1] = fy*p[1]/p[2] + cy - observedy;
 
@@ -620,7 +616,7 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
 //    options.num_threads = 4;
     options.max_num_iterations = Config::maxIters();
     options.linear_solver_type = ceres::DENSE_SCHUR;
-    options.minimizer_progress_to_stdout = true;
+    options.minimizer_progress_to_stdout = false;
     options.max_solver_time_in_seconds = 0.1;
 
     cout << "PnP optimization " << endl;
@@ -646,11 +642,11 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
     else
     {
         // Display statistics about the minimization
-        cout << summary.BriefReport() << endl
-             << " residuals number: " << summary.num_residuals << endl
-             << " Initial RMSE: " << sqrt(summary.initial_cost / summary.num_residuals) << endl
-             << " Final RMSE: " << sqrt(summary.final_cost / summary.num_residuals) << endl
-             << " Time (s): " << summary.total_time_in_seconds << endl;
+//        cout << summary.BriefReport() << endl
+//             << " residuals number: " << summary.num_residuals << endl
+//             << " Initial RMSE: " << sqrt(summary.initial_cost / summary.num_residuals) << endl
+//             << " Final RMSE: " << sqrt(summary.final_cost / summary.num_residuals) << endl
+//             << " Time (s): " << summary.total_time_in_seconds << endl;
     }
 
 //    vector<double> vresiduals;
@@ -746,7 +742,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
         }
     } // for (auto pKFi : lLocalKeyFrames)
 
-    set<size_t> lFixedCamerasID;
+    set<KeyFrame*> lFixedCameras;
     for (auto pMP : lLocalMapPoints)
     {
         vector<Frame*> observations = pMP->GetObservedFrame();
@@ -762,7 +758,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
             {
                 pKFi->mBAFixedForKF = pKeyFrame->GetFrameID();
                 if (!pKFi->isBad())
-                    lFixedCamerasID.insert(pKFi->GetFrameID());
+                    lFixedCameras.insert(pKFi);
             }
         }
     }
@@ -782,7 +778,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
             {
                 pKFi->mBAFixedForKF = pKeyFrame->GetFrameID();
                 if (!pKFi->isBad())
-                    lFixedCamerasID.insert(pKFi->GetFrameID());
+                    lFixedCameras.insert(pKFi);
             }
         }
     }
@@ -792,7 +788,18 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
 
     Eigen::Matrix2d pointSqrtInforMatrix;
     Eigen::Matrix2d lineSqrtInforMatrix;
-    map<size_t, Eigen::Matrix<double, 7, 1>> mCameraPose;
+
+    for (auto pKeyFrame : lLocalKeyFrames)
+    {
+        problem.AddParameterBlock(pKeyFrame->Tcw.data(), 7, new PoseLocalParameterization());
+    }
+
+//    for (auto pFixedKeyFrame : lFixedCameras)
+//    {
+//        problem.SetParameterBlockConstant(pFixedKeyFrame->Tcw.data());
+//    }
+
+    cout << "ComputeMapPointCost: " << endl;
 
     for (auto pMapPoint : lLocalMapPoints)
     {
@@ -812,7 +819,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
             if (!pFramei->isKeyFrame())
                 continue;
 
-            PointFeature2D *pPointFeature2D = pMapPoint->mmpPointFeature2D[pFramei->mpKeyFrame->GetFrameID()];
+            KeyFrame *pKFi = pFramei->mpKeyFrame;
+
+            PointFeature2D *pPointFeature2D = pMapPoint->mmpPointFeature2D[pKFi->GetFrameID()];
 
             // TODO there should to add the thread mutex
             if (!pPointFeature2D->mbinlier)
@@ -826,28 +835,18 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
             ceres::CostFunction *costfunction = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                          observed[0], observed[1], pointSqrtInforMatrix);
 
-//            mCameraPose[pFramei->mpKeyFrame->GetFrameID()] = Converter::toVector7d(pFramei->mpKeyFrame->GetPose());
+            pMapPoint->mPosew_ = pMapPoint->mPosew;
 
-            cv::Mat extrinsic(7, 1, CV_64FC1);
+            problem.AddResidualBlock(costfunction, lossfunction, pKFi->Tcw.data(), &pMapPoint->mPosew_.x());
 
-            {
-                extrinsic.ptr<double>()[0] = pFramei->mpKeyFrame->GetPose().unit_quaternion().x();
-                extrinsic.ptr<double>()[1] = pFramei->mpKeyFrame->GetPose().unit_quaternion().y();
-                extrinsic.ptr<double>()[2] = pFramei->mpKeyFrame->GetPose().unit_quaternion().z();
-                extrinsic.ptr<double>()[3] = pFramei->mpKeyFrame->GetPose().unit_quaternion().w();
-                extrinsic.ptr<double>()[4] = pFramei->mpKeyFrame->GetPose().translation()[0];
-                extrinsic.ptr<double>()[5] = pFramei->mpKeyFrame->GetPose().translation()[1];
-                extrinsic.ptr<double>()[6] = pFramei->mpKeyFrame->GetPose().translation()[2];
-            }
+            problem.AddParameterBlock(&pMapPoint->mPosew_.x(), 3);
 
-            problem.AddResidualBlock(costfunction, lossfunction, extrinsic.ptr<double>(), pMapPoint->GetPose().data());
-
-            problem.AddParameterBlock(pMapPoint->GetPose().data(), 3);
-
-//            cout << Optimizer::ComputeMapPointCost(pMapPoint, pFramei->mpKeyFrame->GetPose().unit_quaternion(), pFramei->mpKeyFrame->GetPose().translation(),
-//                                                   K, pFramei->mpKeyFrame->GetFrameID()) << endl;
+//            cout << Optimizer::ComputeMapPointCost(pMapPoint, pKFi->Tcw.unit_quaternion(), pKFi->Tcw.translation(),
+//                                                   K, pKFi->GetFrameID()) << endl;
         }
     }
+
+    cout << "ComputeMapLineCost: " << endl;
 
     for (auto pMapLine : lLocalMapLines)
     {
@@ -867,7 +866,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
             if (!pFramei->isKeyFrame())
                 continue;
 
-            LineFeature2D *pLineFeature2d = pMapLine->mmpLineFeature2D[pFramei->mpKeyFrame->GetFrameID()];
+            KeyFrame *pKFi = pFramei->mpKeyFrame;
+
+            LineFeature2D *pLineFeature2d = pMapLine->mmpLineFeature2D[pKFi->GetFrameID()];
 
             if (!pLineFeature2d->mbinlier)
                 continue;
@@ -884,28 +885,21 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
 
             ceres::CostFunction *costFunction = new ReprojectionLineErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                              observedStart, observedEnd, observedLineCoef, lineSqrtInforMatrix);
-//
-//            mCameraPose[pFramei->GetFrameID()] = Converter::toVector7d(pFramei->mpKeyFrame->GetPose());
 
-            cv::Mat extrinsic(7, 1, CV_64FC1);
+            pMapLine->mPoseEndw_ = pMapLine->mPoseEndw;
+            pMapLine->mPoseStartw_ = pMapLine->mPoseStartw;
 
-            {
-                extrinsic.ptr<double>()[0] = pFramei->mpKeyFrame->GetPose().unit_quaternion().x();
-                extrinsic.ptr<double>()[1] = pFramei->mpKeyFrame->GetPose().unit_quaternion().y();
-                extrinsic.ptr<double>()[2] = pFramei->mpKeyFrame->GetPose().unit_quaternion().z();
-                extrinsic.ptr<double>()[3] = pFramei->mpKeyFrame->GetPose().unit_quaternion().w();
-                extrinsic.ptr<double>()[4] = pFramei->mpKeyFrame->GetPose().translation()[0];
-                extrinsic.ptr<double>()[5] = pFramei->mpKeyFrame->GetPose().translation()[1];
-                extrinsic.ptr<double>()[6] = pFramei->mpKeyFrame->GetPose().translation()[2];
-            }
+            problem.AddResidualBlock(costFunction, lossfunction, pKFi->Tcw.data(), &pMapLine->mPoseStartw_.x(),
+                                     &pMapLine->mPoseEndw_.x());
 
-            problem.AddResidualBlock(costFunction, lossfunction, extrinsic.ptr<double>(), pMapLine->GetPoseStart().data(),
-                                     pMapLine->GetPoseEnd().data());
+            problem.AddParameterBlock(&pMapLine->mPoseStartw_.x(), 3);
+            problem.AddParameterBlock(&pMapLine->mPoseEndw_.x(), 3);
 
-            problem.AddParameterBlock(pMapLine->GetPoseStart().data(), 3);
-            problem.AddParameterBlock(pMapLine->GetPoseEnd().data(), 3);
+            cout << ComputeMapLineCost(pMapLine, pKFi->Tcw.unit_quaternion(), pKFi->Tcw.translation(), K, pKFi->GetFrameID()) << endl;
         }
     }
+
+    cout << "GetReprojectionErrorNorms: " << endl;
 
     vector<double> vresiduals;
     vresiduals = GetReprojectionErrorNorms(problem);
@@ -915,21 +909,15 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
         cout << residual << endl;
     }
 
-//    for (auto KeyFrame : lLocalKeyFrames)
-//    {
-//        problem.AddParameterBlock(mCameraPose[KeyFrame->GetFrameID()].data(), 7, new PoseLocalParameterization());
-//    }
-//
-//    for (auto FixedCameraID : lFixedCamerasID)
-//    {
-//        problem.SetParameterBlockConstant(mCameraPose[FixedCameraID].data());
-//    }
+    RemoveOutliers(problem, 25);
+
+    cout << pKeyFrame->Tcw.matrix3x4() << endl;
 
     ceres::Solver::Options options;
 //    options.num_threads = 4;
     options.linear_solver_type = ceres::DENSE_SCHUR;
     options.minimizer_progress_to_stdout = true;
-    options.max_solver_time_in_seconds = 0.1;
+    options.max_solver_time_in_seconds = 0.3;
 
     cout << "local Bundle Adjustment optimization " << endl;
     ceres::Solver::Summary summary;
@@ -947,6 +935,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
              << " Final RMSE: " << sqrt(summary.final_cost / summary.num_residuals) << endl
              << " Time (s): " << summary.total_time_in_seconds << endl;
     }
+
+    cout << pKeyFrame->Tcw.matrix3x4() << endl;
+
 
 } // void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map *pMap)
 

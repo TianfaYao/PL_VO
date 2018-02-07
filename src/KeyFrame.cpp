@@ -148,7 +148,7 @@ void KeyFrame::UpdateConnections()
 
     int nmax = 0;
     Frame *pFrameMax = nullptr;
-    int th = 30;
+    int th = 60;
 
     vector<pair<int, KeyFrame *> > vPairs;
 

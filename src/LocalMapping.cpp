@@ -19,7 +19,7 @@ void LocalMapping::SetTracking(Tracking *pTracker)
 
 void LocalMapping::Run()
 {
-    while (1)
+//    while (1)
     {
         if (CheckNewKeyFrames())
         {

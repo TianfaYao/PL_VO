@@ -18,7 +18,7 @@ System::System(const string &strSettingsFile)
     mpTracking->SetMap(mpMap);
     mpTracking->SetLocalMapping(mpLocalMapping);
 
-    mptLocalMapping = new thread(&LocalMapping::Run, mpLocalMapping);
+//    mptLocalMapping = new thread(&LocalMapping::Run, mpLocalMapping);
 }
 
 System::~System()
@@ -29,6 +29,7 @@ System::~System()
 Eigen::Matrix<double, 7, 1>  System::TrackRGBD(const cv::Mat &imagergb, const cv::Mat &imagedepth, const double &timeStamps)
 {
     mpTracking->Track(imagergb, imagedepth, timeStamps);
+    mpLocalMapping->Run();
 }
 
 void System::SaveTrajectory(const string &filename)
@@ -40,9 +41,10 @@ void System::SaveTrajectory(const string &filename)
 
     ofstreamer << fixed;
 
-    for (auto frame: mpMap->mvpFrames)
+    for (auto pframe: mpMap->mvpFrames)
     {
-        ofstreamer << setprecision(6) << frame->mtimeStamp << " " << frame->Tcw.inverse().translation().transpose() << endl;
+        if (pframe->isKeyFrame())
+            ofstreamer << setprecision(6) << pframe->mpKeyFrame->mtimeStamp << " " << pframe->mpKeyFrame->Tcw.inverse().translation().transpose() << endl;
     }
 
     ofstreamer.close();

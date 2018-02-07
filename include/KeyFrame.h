@@ -48,6 +48,7 @@ public:
 
     Sophus::SE3d Tcw;
     Sophus::SE3d Twc;
+    Sophus::SE3d TcwOptimize;
 
     vector<cv::KeyPoint> mvKeyPoint;
     vector<cv::line_descriptor::KeyLine> mvKeyLine;

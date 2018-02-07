@@ -48,4 +48,13 @@ int main(int argv, char* argc[])
     cout << "Tcw*Point3d: "  << endl;
     cout << (Tcw.inverse()*Point).transpose() << endl;
     cout << (Tcw.rotationMatrix()*Point + Tcw.translation()) << endl;
+
+    cout << "parameter: " << endl;
+    cout << Tcw.data()[0] << endl;
+    cout << Tcw.data()[1] << endl;
+    cout << Tcw.data()[2] << endl;
+    cout << Tcw.data()[3] << endl;
+    cout << Tcw.data()[4] << endl;
+    cout << Tcw.data()[5] << endl;
+    cout << Tcw.data()[6] << endl;
 }
