@@ -27,8 +27,8 @@ int main(int argc, char **argv)
     vector<string> vstrImageFilenamesD;
     vector<double> vTimestamps;
 
-    string strAssociationFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg1_desk/associate.txt");
-    string strSequenceFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg1_desk");
+    string strAssociationFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg1_desk/associate.txt");
+    string strSequenceFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg1_desk");
     string strSettingsFile("../Example/TUM1.yaml");
 
 //    string strAssociationFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far/associations.txt");
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
         vo.TrackRGBD(imRGB, imDepth, imagetimestamps);
     }
 
-    vo.SaveTrajectory("tum_trajectory2.txt");
+    vo.SaveTrajectory("tum_trajectory1.txt");
 
 }
 
@@ -85,6 +85,10 @@ void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageF
 {
     ifstream fAssociation;
     fAssociation.open(strAssociationFilename.c_str());
+
+    if (!fAssociation.is_open())
+        cerr << "the file path is wrong!" << endl;
+
     while(!fAssociation.eof())
     {
         string s;

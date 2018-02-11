@@ -486,7 +486,7 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         pFrame->Tcw.setQuaternion(Eigen::Quaterniond(extrinsic.ptr<double>()[3], extrinsic.ptr<double>()[0],
                                                      extrinsic.ptr<double>()[1],extrinsic.ptr<double>()[2]));
 
-        pFrame->Tcw.so3().unit_quaternion().norm();
+        pFrame->Tcw.unit_quaternion() = pFrame->Tcw.unit_quaternion().normalized();
         pFrame->Tcw.translation()[0] = extrinsic.ptr<double>()[4];
         pFrame->Tcw.translation()[1] = extrinsic.ptr<double>()[5];
         pFrame->Tcw.translation()[2] = extrinsic.ptr<double>()[6];
@@ -629,7 +629,7 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
         PoseInc.setQuaternion(Eigen::Quaterniond(extrinsic.ptr<double>()[3], extrinsic.ptr<double>()[0],
                                                  extrinsic.ptr<double>()[1],extrinsic.ptr<double>()[2]));
 
-        PoseInc.so3().unit_quaternion().norm();
+        PoseInc.unit_quaternion() = PoseInc.unit_quaternion().normalized();
         PoseInc.translation()[0] = extrinsic.ptr<double>()[4];
         PoseInc.translation()[1] = extrinsic.ptr<double>()[5];
         PoseInc.translation()[2] = extrinsic.ptr<double>()[6];
@@ -934,6 +934,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
              << " Initial RMSE: " << sqrt(summary.initial_cost / summary.num_residuals) << endl
              << " Final RMSE: " << sqrt(summary.final_cost / summary.num_residuals) << endl
              << " Time (s): " << summary.total_time_in_seconds << endl;
+    }
+
+    for (auto pKeyFrame : lLocalKeyFrames)
+    {
+        pKeyFrame->Tcw.unit_quaternion() = pKeyFrame->Tcw.unit_quaternion().normalized();
     }
 
     cout << pKeyFrame->Tcw.matrix3x4() << endl;

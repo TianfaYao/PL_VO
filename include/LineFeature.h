@@ -9,8 +9,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/opencv.hpp>
-#include <line_descriptor_custom.hpp>
-#include <line_descriptor/descriptor_custom.hpp>
+#include "line_descriptor_custom.hpp"
+#include "line_descriptor/descriptor_custom.hpp"
 
 #include "Config.h"
 
