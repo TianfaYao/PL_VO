@@ -123,9 +123,9 @@ int main(int argc, char* argv[])
 
 //    pcurrentFrame->UnprojectStereo(img2depth, vpointRefineMatches, vlineRefineMatches);
 
-    pcurrentFrame->UnprojectStereo(img2depth, vpointRefineMatches, vlineRefineMatches, true);
+    pcurrentFrame->UnprojectStereo(img2depth);
 
-    plastFrame->UnprojectStereo(img1depth, vpointRefineMatches, vlineRefineMatches, false);
+    plastFrame->UnprojectStereo(img1depth);
 
     pTracking->SetCurLastFrame(pcurrentFrame, plastFrame);
 

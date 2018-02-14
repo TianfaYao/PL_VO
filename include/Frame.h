@@ -20,11 +20,11 @@
 namespace PL_VO
 {
 
+struct LineFeature2D;
+struct PointFeature2D;
 class Camera;
 class LineFeature;
 class PointFeature;
-struct LineFeature2D;
-struct PointFeature2D;
 class MapPoint;
 class MapLine;
 class KeyFrame;
@@ -62,12 +62,15 @@ public:
 
     double FindDepth(const cv::Point2f &point, const cv::Mat &imagedepth);
 
-    void UnprojectStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> vpointMatches, const vector<cv::DMatch> vlineMatches,
-                         const bool &bcurframe);
+    void UnprojectStereo(const cv::Mat &imageDepth);
 
     void SetKeyFrameFlag(bool flag);
 
     bool isKeyFrame();
+
+    Sophus::SE3d GetPose();
+
+    void SetPose(Sophus::SE3d Tcw_);
 
     void MapLinePointShow();
 
@@ -113,9 +116,9 @@ private:
 
     void UndistortLineFeature();
 
-    void UnprojectPointStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> &vpointMatches, const bool &bcurframe);
+    void UnprojectPointStereo(const cv::Mat &imageDepth);
 
-    void UnprojectLineStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> &vlineMatches, const bool &bcurframe);
+    void UnprojectLineStereo(const cv::Mat &imageDepth);
 
     static size_t gCount;
     size_t mID;

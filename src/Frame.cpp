@@ -401,138 +401,113 @@ double Frame::FindDepth(const cv::Point2f &point, const cv::Mat &imagedepth)
     return -1.;
 }
 
-void Frame::UnprojectPointStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> &vpointMatches, const bool &bcurframe)
+void Frame::UnprojectPointStereo(const cv::Mat &imageDepth)
 {
     mvpPointFeature2D.resize(mvKeyPointUn.size());
 
-    for (auto match : vpointMatches)
+    cv::KeyPoint kp;
+    Eigen::Vector3d Point3dw;
+    for (size_t i = 0, iend = mvKeyPointUn.size(); i < iend; i++)
     {
+        kp = mvKeyPointUn[i];
+        double d = FindDepth(mvKeyPoint[i].pt, imageDepth);
 
-        int idxMatch;
-        cv::KeyPoint kp;
+        PointFeature2D *ppointFeature2D = new PointFeature2D(Converter::toVector2d(kp.pt), kp.octave, kp.response);
 
-        if (bcurframe)
-            idxMatch = match.trainIdx;
-        else
-            idxMatch = match.queryIdx;
-
-        if (mvpPointFeature2D[idxMatch] == nullptr)
+        if (d > 0)
         {
-            kp = mvKeyPointUn[idxMatch];
-
-            // !!!notice: the pixel of the depth image should use the distorted image
-            Eigen::Vector3d Point3dw;
-            double d = FindDepth(mvKeyPoint[idxMatch].pt, imageDepth);
-
-            PointFeature2D *ppointFeature = new PointFeature2D(Converter::toVector2d(kp.pt), kp.octave, kp.response, idxMatch);
-
-            if (d > 0)
-            {
-                Point3dw = mpCamera->Pixwl2World(Converter::toVector2d(kp.pt), Eigen::Quaterniond::Identity(), Eigen::Vector3d(0, 0, 0), d);
-            }
-            else
-            {
-                Point3dw.setZero();
-                ppointFeature->mbinlier = false;
-            }
-
-            // the pointfeature2d's ID is setted by the match
-
-            ppointFeature->mPoint3dw = Point3dw;
-
-            mvpPointFeature2D[idxMatch] = ppointFeature;
+            Point3dw = mpCamera->Pixwl2World(Converter::toVector2d(kp.pt), Eigen::Quaterniond::Identity(), Eigen::Vector3d(0, 0, 0), d);
         }
-    } // for (auto match : vpointMatches)
-}
-
-void Frame::UnprojectLineStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> &vlineMatches, const bool &bcurframe)
-{
-    mvpLineFeature2D.resize(mvKeyLineUn.size());
-
-    for (auto match : vlineMatches)
-    {
-        int idxMatch;
-        cv::line_descriptor::KeyLine klUn;
-        cv::line_descriptor::KeyLine kl;
-
-        if (bcurframe)
-            idxMatch = match.trainIdx; // the current frame
         else
-            idxMatch = match.queryIdx; // the last frame
-
-        if (mvpLineFeature2D[idxMatch] == nullptr)
         {
-            klUn = mvKeyLineUn[idxMatch];
-            kl = mvKeyLine[idxMatch];
+            Point3dw.setZero();
+            ppointFeature2D->mbinlier = false;
+        }
 
+        // the pointfeature2d's ID is setted by the match
 
-            cv::Point2f startPointUn2f;
-            cv::Point2f endPointUn2f;
-            cv::Point2f startPoint2f;
-            cv::Point2f endPoint2f;
+        ppointFeature2D->mPoint3dw = Point3dw;
 
-            startPointUn2f = cv::Point2f(klUn.startPointX, klUn.startPointY);
-            endPointUn2f = cv::Point2f(klUn.endPointX, klUn.endPointY);
-
-            startPoint2f = cv::Point2f(kl.startPointX, kl.startPointY);
-            endPoint2f = cv::Point2f(kl.endPointX, kl.endPointY);
-
-            // !!!notice: use the distored image
-            double d1 = FindDepth(startPoint2f, imageDepth);
-            double d2 = FindDepth(endPoint2f, imageDepth);
-            Eigen::Vector3d startPoint3dw;
-            Eigen::Vector3d endPoint3dw;
-
-            LineFeature2D *plineFeature2D = new LineFeature2D(Converter::toVector2d(startPointUn2f), Converter::toVector2d(endPointUn2f),
-                                                              kl.octave, kl.response, idxMatch);
-
-            if (d1 > 0)
-            {
-
-                startPoint3dw = mpCamera->Pixwl2World(Converter::toVector2d(startPointUn2f), Eigen::Quaterniond::Identity(),
-                                                      Eigen::Vector3d(0, 0, 0), d1);
-            }
-            else
-            {
-                startPoint3dw.setZero(); // to set the pose zero and use the other observation to calculate the pose
-                plineFeature2D->mbinlier = false;
-            }
-
-            if (d2 > 0)
-            {
-                endPoint3dw = mpCamera->Pixwl2World(Converter::toVector2d(endPointUn2f), Eigen::Quaterniond::Identity(),
-                                                    Eigen::Vector3d(0, 0, 0), d2);
-            }
-            else
-            {
-                endPoint3dw.setZero();
-                plineFeature2D->mbinlier = false;
-            }
-
-            plineFeature2D->mStartPoint3dw = startPoint3dw;
-            plineFeature2D->mEndPoint3dw = endPoint3dw;
-
-            mvpLineFeature2D[idxMatch]= plineFeature2D;
-
-        } // if (mvpLineFeature2D[idxMatch] == nullptr)
+        mvpPointFeature2D[i] = ppointFeature2D;
     }
 }
 
-void Frame::UnprojectStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> vpointMatches,
-                            const vector<cv::DMatch> vlineMatches, const bool &bcurframe)
+void Frame::UnprojectLineStereo(const cv::Mat &imageDepth)
+{
+    mvpLineFeature2D.resize(mvKeyLineUn.size());
+
+    cv::line_descriptor::KeyLine klUn;
+    cv::line_descriptor::KeyLine kl;
+
+    for (size_t i = 0, iend = mvKeyLineUn.size(); i < iend; i++)
+    {
+        klUn = mvKeyLineUn[i];
+        kl = mvKeyLine[i];
+
+        cv::Point2f startPointUn2f;
+        cv::Point2f endPointUn2f;
+        cv::Point2f startPoint2f;
+        cv::Point2f endPoint2f;
+
+        startPointUn2f = cv::Point2f(klUn.startPointX, klUn.startPointY);
+        endPointUn2f = cv::Point2f(klUn.endPointX, klUn.endPointY);
+
+        startPoint2f = cv::Point2f(kl.startPointX, kl.startPointY);
+        endPoint2f = cv::Point2f(kl.endPointX, kl.endPointY);
+
+        // !!!notice: use the distored image
+        double d1 = FindDepth(startPoint2f, imageDepth);
+        double d2 = FindDepth(endPoint2f, imageDepth);
+        Eigen::Vector3d startPoint3dw;
+        Eigen::Vector3d endPoint3dw;
+
+        LineFeature2D *plineFeature2D = new LineFeature2D(Converter::toVector2d(startPointUn2f), Converter::toVector2d(endPointUn2f),
+                                                          kl.octave, kl.response);
+
+        if (d1 > 0)
+        {
+
+            startPoint3dw = mpCamera->Pixwl2World(Converter::toVector2d(startPointUn2f), Eigen::Quaterniond::Identity(),
+                                                  Eigen::Vector3d(0, 0, 0), d1);
+        }
+        else
+        {
+            startPoint3dw.setZero(); // to set the pose zero and use the other observation to calculate the pose
+            plineFeature2D->mbinlier = false;
+        }
+
+        if (d2 > 0)
+        {
+            endPoint3dw = mpCamera->Pixwl2World(Converter::toVector2d(endPointUn2f), Eigen::Quaterniond::Identity(),
+                                                Eigen::Vector3d(0, 0, 0), d2);
+        }
+        else
+        {
+            endPoint3dw.setZero();
+            plineFeature2D->mbinlier = false;
+        }
+
+        plineFeature2D->mStartPoint3dw = startPoint3dw;
+        plineFeature2D->mEndPoint3dw = endPoint3dw;
+
+        mvpLineFeature2D[i]= plineFeature2D;
+    }
+}
+
+void Frame::UnprojectStereo(const cv::Mat &imageDepth)
 {
     if (Config::plInParallel())
     {
-        auto pointStereo = async(launch::async, &Frame::UnprojectPointStereo, this, imageDepth, vpointMatches, bcurframe);
-        auto lineStereo = async(launch::async, &Frame::UnprojectLineStereo, this, imageDepth, vlineMatches, bcurframe);
+        auto pointStereo = async(launch::async, &Frame::UnprojectPointStereo, this, imageDepth);
+        auto lineStereo = async(launch::async, &Frame::UnprojectLineStereo, this, imageDepth);
 
         pointStereo.wait();
         lineStereo.wait();
     }
     else
     {
-        UnprojectPointStereo(imageDepth, vpointMatches, bcurframe);
-        UnprojectLineStereo(imageDepth, vlineMatches, bcurframe);
+        UnprojectPointStereo(imageDepth);
+        UnprojectLineStereo(imageDepth);
     }
 }
 
@@ -546,6 +521,18 @@ bool Frame::isKeyFrame()
 {
     unique_lock<mutex> lock(mMutexPose);
     return mbisKeyFrame;
+}
+
+Sophus::SE3d Frame::GetPose()
+{
+    unique_lock<mutex> lock(mMutexPose);
+    return Tcw;
+}
+
+void Frame::SetPose(Sophus::SE3d Tcw_)
+{
+    unique_lock<mutex> lock(mMutexPose);
+    Tcw = Tcw_;
 }
 
 void Frame::MapLinePointShow()

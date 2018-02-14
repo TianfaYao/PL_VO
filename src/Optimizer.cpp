@@ -486,7 +486,7 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         pFrame->Tcw.setQuaternion(Eigen::Quaterniond(extrinsic.ptr<double>()[3], extrinsic.ptr<double>()[0],
                                                      extrinsic.ptr<double>()[1],extrinsic.ptr<double>()[2]));
 
-        pFrame->Tcw.unit_quaternion() = pFrame->Tcw.unit_quaternion().normalized();
+        pFrame->Tcw.setQuaternion(pFrame->Tcw.unit_quaternion().normalized());
         pFrame->Tcw.translation()[0] = extrinsic.ptr<double>()[4];
         pFrame->Tcw.translation()[1] = extrinsic.ptr<double>()[5];
         pFrame->Tcw.translation()[2] = extrinsic.ptr<double>()[6];
@@ -629,7 +629,7 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
         PoseInc.setQuaternion(Eigen::Quaterniond(extrinsic.ptr<double>()[3], extrinsic.ptr<double>()[0],
                                                  extrinsic.ptr<double>()[1],extrinsic.ptr<double>()[2]));
 
-        PoseInc.unit_quaternion() = PoseInc.unit_quaternion().normalized();
+        PoseInc.setQuaternion(PoseInc.unit_quaternion().normalized());
         PoseInc.translation()[0] = extrinsic.ptr<double>()[4];
         PoseInc.translation()[1] = extrinsic.ptr<double>()[5];
         PoseInc.translation()[2] = extrinsic.ptr<double>()[6];
@@ -938,11 +938,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
 
     for (auto pKeyFrame : lLocalKeyFrames)
     {
-        pKeyFrame->Tcw.unit_quaternion() = pKeyFrame->Tcw.unit_quaternion().normalized();
+        pKeyFrame->Tcw.setQuaternion(pKeyFrame->Tcw.unit_quaternion().normalized());
     }
 
     cout << pKeyFrame->Tcw.matrix3x4() << endl;
-
 
 } // void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map *pMap)
 

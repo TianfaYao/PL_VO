@@ -26,14 +26,13 @@ struct LineFeature2D;
 struct PointFeature2D
 {
     PointFeature2D(const Eigen::Vector2d &pixel, const int &level=0, const double &score=0, const int &idxMatch=-1)
-                   : mpixel(pixel), mlevel(level), mscore(score), midxMatch(idxMatch)
+                   : mpixel(pixel), mlevel(level), mscore(score)
     {
     }
 
     Frame *mpFrame = nullptr;
     MapPoint *mpMapPoint = nullptr;
 
-    int midxMatch = -1;
     Eigen::Vector2d mpixel = Eigen::Vector2d(0, 0);
     Eigen::Vector3d mPoint3dw = Eigen::Vector3d(0, 0, 0);
     double mdepth = -1;
@@ -50,7 +49,7 @@ struct LineFeature2D
 {
     LineFeature2D(const Eigen::Vector2d &Startpixel, const Eigen::Vector2d &Endpixel, const int &level=0,
                   const double &score=0, const int &idxMatch=-1) : mStartpixel(Startpixel), mEndpixel(Endpixel),
-                  mlevel(level), mscore(score), midxMatch(idxMatch)
+                  mlevel(level), mscore(score)
     {
         Eigen::Vector3d startPointH;
         Eigen::Vector3d endPointH;
@@ -69,7 +68,6 @@ struct LineFeature2D
     Frame *mpFrame = nullptr;
     MapLine *mpMapLine = nullptr;
 
-    int midxMatch = -1;
     Eigen::Vector2d mStartpixel = Eigen::Vector2d(0, 0);
     Eigen::Vector2d mEndpixel = Eigen::Vector2d(0, 0);
     Eigen::Vector3d mLineCoef = Eigen::Vector3d(0, 0, 0);

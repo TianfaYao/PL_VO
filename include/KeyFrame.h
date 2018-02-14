@@ -25,6 +25,11 @@ public:
 
     size_t GetFrameID();
 
+    double FindDepth(const cv::Point2f &point, const cv::Mat &imagedepth);
+
+    void UnprojectStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> vpointMatches,
+                         const vector<cv::DMatch> vlineMatches);
+
     void AddConnection(KeyFrame* pKeyFrame, const int &weight);
 
     void UpdateBestCovisibles();
@@ -36,8 +41,12 @@ public:
     vector<KeyFrame*> GetVectorCovisibleKeyFrames();
 
     vector<MapPoint*> GetMapPointMatches();
+
     vector<MapLine*> GetMapLineMatches();
+
     Sophus::SE3d GetPose();
+
+    void SetPose(Sophus::SE3d Tcw_);
 
     bool isBad();
 
@@ -49,6 +58,9 @@ public:
     Sophus::SE3d Tcw;
     Sophus::SE3d Twc;
     Sophus::SE3d TcwOptimize;
+
+    cv::Mat mpointDesc;
+    cv::Mat mlineDesc;
 
     vector<cv::KeyPoint> mvKeyPoint;
     vector<cv::line_descriptor::KeyLine> mvKeyLine;
@@ -64,7 +76,8 @@ public:
     vector<int> mvOrderedWeights;
 
     bool mbFirstConnection;
-    KeyFrame* mpParent;
+    Frame *pFrame = nullptr;
+    KeyFrame* mpParent = nullptr;
     set<KeyFrame*> mspChildrens;
     set<KeyFrame*> mspLoopEdges;
 
@@ -73,7 +86,14 @@ public:
 
 private:
 
+    void UnprojectPointStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> &vpointMatches);
+
+    void UnprojectLineStereo(const cv::Mat &imageDepth, const vector<cv::DMatch> &vlineMatches);
+
     bool mbBad;
+
+    int mImageHeight;
+    int mImageWidth;
 
     size_t mID;
     mutex mMutexPose;

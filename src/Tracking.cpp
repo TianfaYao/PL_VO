@@ -71,6 +71,8 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
 
     mpcurrentFrame->UndistortKeyFeature();
 
+    mpcurrentFrame->UnprojectStereo(mimageDepth);
+
     if (!mlastimageGrays.empty())
     {
         vector<cv::DMatch> vpointMatches;
@@ -78,17 +80,14 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
         vector<cv::DMatch> vlineMatches;
         vector<cv::DMatch> vlineRefineMatches;
 
-        mpcurrentFrame->matchLPFeature(mplastFrame->mpointDesc, mpcurrentFrame->mpointDesc, vpointMatches,
-                                       mplastFrame->mlineDesc, mpcurrentFrame->mlineDesc, vlineMatches);
+        mpcurrentFrame->matchLPFeature(mpLastKeyFrame->mpointDesc, mpcurrentFrame->mpointDesc, vpointMatches,
+                                       mpLastKeyFrame->mlineDesc, mpcurrentFrame->mlineDesc, vlineMatches);
 
-        mpcurrentFrame->refineLPMatches(mplastFrame->mvKeyPoint, mpcurrentFrame->mvKeyPoint,
-                                        mplastFrame->mvKeyLine, mpcurrentFrame->mvKeyLine,
+        mpcurrentFrame->refineLPMatches(mpLastKeyFrame->mvKeyPoint, mpcurrentFrame->mvKeyPoint,
+                                        mpLastKeyFrame->mvKeyLine, mpcurrentFrame->mvKeyLine,
                                         vpointMatches, vpointRefineMatches, vlineMatches, vlineRefineMatches);
 
-
-        mpcurrentFrame->UnprojectStereo(mimageDepth, vpointRefineMatches, vlineRefineMatches, true);
-
-        mplastFrame->UnprojectStereo(mlastimageDepth, vpointRefineMatches, vlineRefineMatches, false);
+//        mpLastKeyFrame->UnprojectStereo(mlastimageDepth, vpointRefineMatches, vlineRefineMatches);
 
         // use the pnp and point match to track the reference frame
         // use the pnp ransanc to remove the outliers
@@ -104,11 +103,11 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
         cout << mpcurrentFrame->Tcw.translation() << endl;
 
         cv::Mat showimg;
-        cv::drawMatches(mlastimagergb, mplastFrame->mvKeyPoint, mimagergb, mpcurrentFrame->mvKeyPoint,
+        cv::drawMatches(mlastimagergb, mpLastKeyFrame->mvKeyPoint, mimagergb, mpcurrentFrame->mvKeyPoint,
                         vpointRefineMatches, showimg);
 
         std::vector<char> mask(vlineRefineMatches.size(), 1);
-        cv::line_descriptor::drawLineMatches(mlastimagergb, mplastFrame->mvKeyLine, mimagergb, mpcurrentFrame->mvKeyLine,
+        cv::line_descriptor::drawLineMatches(mlastimagergb, mpLastKeyFrame->mvKeyLine, mimagergb, mpcurrentFrame->mvKeyLine,
                                              vlineRefineMatches, showimg,  cv::Scalar::all(-1), cv::Scalar::all(-1), mask,
                                              cv::line_descriptor::DrawLinesMatchesFlags::DEFAULT);
         cv::imshow(" ", showimg);
@@ -116,14 +115,15 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
     }
 
     if (NeedNewKeyFrame())
+    {
         CreateNewKeyFrame();
+        mlastimageGrays = mimageGray.clone();
+        mlastimagergb = mimagergb.clone();
+        mlastimageDepth = mimageDepth.clone();
+    }
 
     mpMap->mvpFrames.push_back(mpcurrentFrame);
-
     mplastFrame = new Frame(*mpcurrentFrame);
-    mlastimageGrays = mimageGray.clone();
-    mlastimagergb = mimagergb.clone();
-    mlastimageDepth = mimageDepth.clone();
 }
 
 bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches)
@@ -138,7 +138,7 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
 
     for (auto match : vpointMatches)
     {
-        PointFeature2D *pPointFeature2DLast = mplastFrame->mvpPointFeature2D[match.queryIdx];
+        PointFeature2D *pPointFeature2DLast = mpLastKeyFrame->mvpPointFeature2D[match.queryIdx];
         PointFeature2D *pPointFeature2DCur = mpcurrentFrame->mvpPointFeature2D[match.trainIdx];
 
         CHECK_NOTNULL(pPointFeature2DLast);
@@ -159,7 +159,7 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
 
     for (auto match : vlineMatches)
     {
-        LineFeature2D *pLineFeature2DLast = mplastFrame->mvpLineFeature2D[match.queryIdx];
+        LineFeature2D *pLineFeature2DLast = mpLastKeyFrame->mvpLineFeature2D[match.queryIdx];
         LineFeature2D *pLineFeature2DCur = mpcurrentFrame->mvpLineFeature2D[match.trainIdx];
 
         CHECK_NOTNULL(pLineFeature2DLast);
@@ -184,7 +184,7 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
 
 //    cout << "Optimization PoseInc: " << endl << mPoseInc << endl;
 
-    mpcurrentFrame->Tcw = mplastFrame->Tcw*mPoseInc;
+    mpcurrentFrame->SetPose(mpLastKeyFrame->GetPose()*mPoseInc);
 
 }
 
@@ -192,14 +192,9 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
 {
     for (auto match : vpointMatches)
     {
-        PointFeature2D *pPointFeature = mplastFrame->mvpPointFeature2D[match.queryIdx];
+        PointFeature2D *pPointFeature = mpLastKeyFrame->mvpPointFeature2D[match.queryIdx];
 
         CHECK_NOTNULL(pPointFeature);
-
-        if (pPointFeature->midxMatch != match.queryIdx)
-        {
-            LOG(ERROR) << "the idx of the PointFeature 2d is wrong " << endl;
-        }
 
         if (pPointFeature->mpMapPoint == nullptr)
         {
@@ -207,22 +202,17 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
 
             pMapPoint->mID = countMapPoint;
             if (!pPointFeature->mPoint3dw.isZero())
-                pMapPoint->mPosew = mplastFrame->Tcw.inverse()*pPointFeature->mPoint3dw;
-            pMapPoint->mmpPointFeature2D[mplastFrame->GetFrameID()] = pPointFeature;
-            pMapPoint->mvpFrameinvert.push_back(mplastFrame);
+                pMapPoint->mPosew = mpLastKeyFrame->Tcw.inverse()*pPointFeature->mPoint3dw;
+            pMapPoint->mmpPointFeature2D[mpLastKeyFrame->GetFrameID()] = pPointFeature;
+            pMapPoint->mvpFrameinvert.push_back(mpLastKeyFrame->pFrame);
 
-            mplastFrame->mvpMapPoint.push_back(pMapPoint);
+            mpLastKeyFrame->pFrame->mvpMapPoint.push_back(pMapPoint);
             pPointFeature->mpMapPoint = pMapPoint;
 
             countMapPoint++;
 
             PointFeature2D *pcurPointFeature = mpcurrentFrame->mvpPointFeature2D[match.trainIdx];
             CHECK_NOTNULL(pcurPointFeature);
-
-            if (pcurPointFeature->midxMatch != match.trainIdx)
-            {
-                LOG(ERROR) << "the idx of the PointFeature 2d is wrong " << endl;
-            }
 
             pMapPoint->mmpPointFeature2D[mpcurrentFrame->GetFrameID()] = pcurPointFeature;
             pMapPoint->mvpFrameinvert.push_back(mpcurrentFrame);
@@ -237,11 +227,6 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
 
             PointFeature2D *pcurPointFeature = mpcurrentFrame->mvpPointFeature2D[match.trainIdx];
             CHECK_NOTNULL(pcurPointFeature);
-
-            if (pcurPointFeature->midxMatch != match.trainIdx)
-            {
-                LOG(ERROR) << "the idx of the PointFeature 2d is wrong " << endl;
-            }
 
             auto it = pMapPoint->mmpPointFeature2D.find(mpcurrentFrame->GetFrameID());
             if (it != pMapPoint->mmpPointFeature2D.end())
@@ -275,14 +260,9 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
 
     for (auto match : vlineMatches)
     {
-        LineFeature2D *pLineFeature = mplastFrame->mvpLineFeature2D[match.queryIdx];
+        LineFeature2D *pLineFeature = mpLastKeyFrame->mvpLineFeature2D[match.queryIdx];
 
         CHECK_NOTNULL(pLineFeature);
-
-        if (pLineFeature->midxMatch != match.queryIdx)
-        {
-            LOG(ERROR) << "the idx of the LineFeature 2d is wrong " << endl;
-        }
 
         if (pLineFeature->mpMapLine == nullptr)
         {
@@ -290,25 +270,20 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
             pMapLine->mID = countMapLine;
 
             if (!pLineFeature->mStartPoint3dw.isZero())
-                pMapLine->mPoseStartw = mplastFrame->Tcw.inverse()*pLineFeature->mStartPoint3dw;
+                pMapLine->mPoseStartw = mpLastKeyFrame->Tcw.inverse()*pLineFeature->mStartPoint3dw;
             if (!pLineFeature->mEndPoint3dw.isZero())
-                pMapLine->mPoseEndw = mplastFrame->Tcw.inverse()*pLineFeature->mEndPoint3dw;
+                pMapLine->mPoseEndw = mpLastKeyFrame->Tcw.inverse()*pLineFeature->mEndPoint3dw;
 
-            pMapLine->mvpFrameinvert.push_back(mplastFrame);
-            pMapLine->mmpLineFeature2D[mplastFrame->GetFrameID()] = pLineFeature;
+            pMapLine->mvpFrameinvert.push_back(mpLastKeyFrame->pFrame);
+            pMapLine->mmpLineFeature2D[mpLastKeyFrame->GetFrameID()] = pLineFeature;
 
-            mplastFrame->mvpMapLine.push_back(pMapLine);
+            mpLastKeyFrame->pFrame->mvpMapLine.push_back(pMapLine);
             pLineFeature->mpMapLine = pMapLine;
 
             countMapLine++;
 
             LineFeature2D *pcurLineFeature = mpcurrentFrame->mvpLineFeature2D[match.trainIdx];
             CHECK_NOTNULL(pcurLineFeature);
-
-            if (pcurLineFeature->midxMatch != match.trainIdx)
-            {
-                LOG(ERROR) << "the idx of the LineFeature 2d is wrong " << endl;
-            }
 
             pMapLine->mmpLineFeature2D[mpcurrentFrame->GetFrameID()] = pcurLineFeature;
             pMapLine->mvpFrameinvert.push_back(mpcurrentFrame);
@@ -323,11 +298,6 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
 
             LineFeature2D *pcurLineFeature = mpcurrentFrame->mvpLineFeature2D[match.trainIdx];
             CHECK_NOTNULL(pcurLineFeature);
-
-            if (pcurLineFeature->midxMatch != match.trainIdx)
-            {
-                LOG(ERROR) << "the idx of the LineFeature 2d is wrong " << endl;
-            }
 
             auto it = pMapLine->mmpLineFeature2D.find(mpcurrentFrame->GetFrameID());
             if (it != pMapLine->mmpLineFeature2D.end())
@@ -381,8 +351,8 @@ void Tracking::SetLocalMapping(LocalMapping *pLocalMapping)
 
 bool Tracking::NeedNewKeyFrame()
 {
-//    if (mpcurrentFrame->GetFrameID() == 1)
-//        return true;
+    if (mpcurrentFrame->GetFrameID() == 0)
+        return true;
 
     int inlierscnt = 0;
 
@@ -431,7 +401,11 @@ void Tracking::CreateNewKeyFrame()
 {
     KeyFrame *pKeyFrame = new KeyFrame(*mpcurrentFrame, mpMap);
 
+    pKeyFrame->pFrame = mpcurrentFrame;
+
     mpcurrentFrame->mpKeyFrame = pKeyFrame;
+
+    mpLastKeyFrame = pKeyFrame;
 
     mpLocalMapping->InsertKeyFrame(pKeyFrame);
 }

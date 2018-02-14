@@ -31,8 +31,8 @@ int main(int argc, char **argv)
     string strSequenceFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg1_desk");
     string strSettingsFile("../Example/TUM1.yaml");
 
-//    string strAssociationFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far/associations.txt");
-//    string strSequenceFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far");
+//    string strAssociationFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far/associations.txt");
+//    string strSequenceFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far");
 //    string strSettingsFile("../Example/TUM3.yaml");
 
     cout << "datasets asscociateion file: " << strAssociationFilename << endl;
