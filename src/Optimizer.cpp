@@ -369,7 +369,7 @@ double Optimizer::VectorStdvMad(vector<double> vresidues_)
     return MAD;
 }
 
-void Optimizer::PoseOptimization(Frame *pFrame)
+void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 {
     Eigen::Matrix3d K;
     Eigen::Matrix2d pointSqrtInforMatrix;
@@ -378,24 +378,14 @@ void Optimizer::PoseOptimization(Frame *pFrame)
     K = pFrame->mpCamera->GetCameraIntrinsic();
     size_t frameID = pFrame->GetFrameID();
 
-    cv::Mat extrinsic(7, 1, CV_64FC1);
-
-    {
-        extrinsic.ptr<double>()[0] = pFrame->Tcw.unit_quaternion().x();
-        extrinsic.ptr<double>()[1] = pFrame->Tcw.unit_quaternion().y();
-        extrinsic.ptr<double>()[2] = pFrame->Tcw.unit_quaternion().z();
-        extrinsic.ptr<double>()[3] = pFrame->Tcw.unit_quaternion().w();
-        extrinsic.ptr<double>()[4] = pFrame->Tcw.translation()[0];
-        extrinsic.ptr<double>()[5] = pFrame->Tcw.translation()[1];
-        extrinsic.ptr<double>()[6] = pFrame->Tcw.translation()[2];
-    }
-
     cout << pFrame->Tcw.unit_quaternion().coeffs() << endl;
     cout << pFrame->Tcw.translation() << endl;
 
     ceres::Problem problem;
 
-    problem.AddParameterBlock(extrinsic.ptr<double>(), 7, new PoseLocalParameterization());
+    problem.AddParameterBlock(pFrame->Tcw.data(), 7, new PoseLocalParameterization());
+    problem.AddParameterBlock(pKeyFrame->Tcw.data(), 7, new PoseLocalParameterization());
+//    problem.SetParameterBlockConstant(pKeyFrame->Tcw.data());
 
     ceres::LossFunction* lossfunction = new ceres::CauchyLoss(1);   // loss function make bundle adjustment robuster. HuberLoss
 
@@ -412,6 +402,9 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         if (!pMapPoint->mmpPointFeature2D[frameID]->mbinlier)
             continue;
 
+        if (!pMapPoint->mmpPointFeature2D[pKeyFrame->GetFrameID()]->mbinlier)
+            continue;
+
         pointSqrtInforMatrix = Eigen::Matrix2d::Identity()*sqrt(pFrame->mvPointInvLevelSigma2[pMapPoint->mmpPointFeature2D[frameID]->mlevel]);
 
         Eigen::Vector2d observed = pMapPoint->mmpPointFeature2D[frameID]->mpixel;
@@ -419,9 +412,19 @@ void Optimizer::PoseOptimization(Frame *pFrame)
         ceres::CostFunction *costfunction = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                      observed[0], observed[1], pointSqrtInforMatrix);
 
-        problem.AddResidualBlock(costfunction, lossfunction, extrinsic.ptr<double>(), &pMapPoint->mPosew.x());
+        problem.AddResidualBlock(costfunction, lossfunction, pFrame->Tcw.data(), &pMapPoint->mPosew.x());
 
         problem.AddParameterBlock(&pMapPoint->mPosew.x(), 3);
+
+        pointSqrtInforMatrix = Eigen::Matrix2d::Identity()*
+                               sqrt(pKeyFrame->pFrame->mvPointInvLevelSigma2[pMapPoint->mmpPointFeature2D[pKeyFrame->GetFrameID()]->mlevel]);
+
+        observed = pMapPoint->mmpPointFeature2D[pKeyFrame->GetFrameID()]->mpixel;
+
+        ceres::CostFunction *costfunction2 = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
+                                                                     observed[0], observed[1], pointSqrtInforMatrix);
+
+        problem.AddResidualBlock(costfunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapPoint->mPosew.x());
     }
 
     // add the MapLine parameterblocks and residuals
@@ -435,6 +438,9 @@ void Optimizer::PoseOptimization(Frame *pFrame)
                 continue;
 
         if (!pMapLine->mmpLineFeature2D[frameID]->mbinlier)
+            continue;
+
+        if (!pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mbinlier)
             continue;
 
         lineSqrtInforMatrix = Eigen::Matrix2d::Identity()*sqrt(pFrame->mvLineInvLevelSigma2[pMapLine->mmpLineFeature2D[frameID]->mlevel]);
@@ -453,56 +459,48 @@ void Optimizer::PoseOptimization(Frame *pFrame)
 //        double cost;
 //        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
 
-        problem.AddResidualBlock(costFunction, lossfunction, extrinsic.ptr<double>(), &pMapLine->mPoseStartw.x(),
+        problem.AddResidualBlock(costFunction, lossfunction, pFrame->Tcw.data(), &pMapLine->mPoseStartw.x(),
                                  &pMapLine->mPoseEndw.x());
 
         problem.AddParameterBlock(&pMapLine->mPoseStartw.x(), 3);
         problem.AddParameterBlock(&pMapLine->mPoseEndw.x(), 3);
+
+        lineSqrtInforMatrix = Eigen::Matrix2d::Identity()*
+                              sqrt(pKeyFrame->pFrame->mvLineInvLevelSigma2[pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mlevel]);
+
+        observedStart = pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mStartpixel;
+        observedEnd = pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mEndpixel;
+        observedLineCoef = pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mLineCoef;
+
+        ceres::CostFunction *costFunction2 = new ReprojectionLineErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
+                                                                         observedStart, observedEnd, observedLineCoef, lineSqrtInforMatrix);
+
+//        double cost;
+//        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
+
+        problem.AddResidualBlock(costFunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapLine->mPoseStartw.x(),
+                                 &pMapLine->mPoseEndw.x());
     }
 
-    RemoveOutliers(problem, 25);
+    RemoveOutliers(problem, 20);
 
-//    vector<double> vresiduals;
-//    vresiduals = GetReprojectionErrorNorms(problem);
-//
-//    for (auto residual : vresiduals)
-//    {
-//        cout << residual << endl;
-//    }
+    vector<double> vresiduals;
+    vresiduals = GetReprojectionErrorNorms(problem);
+
+    for (auto residual : vresiduals)
+    {
+        cout << residual << endl;
+    }
 
     ceres::Solver::Options options;
 //    options.num_threads = 4;
     options.linear_solver_type = ceres::DENSE_SCHUR;
     options.minimizer_progress_to_stdout = true;
-    options.max_solver_time_in_seconds = 0.1;
+    options.max_solver_time_in_seconds = 0.10;
 
     cout << "pose optimization " << endl;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
-
-    {
-        // it is very important that the scale data is the first position in the quaternion data type in the eigen
-        // but if you use pointer to use the data, the scale date is the last position.
-        pFrame->Tcw.setQuaternion(Eigen::Quaterniond(extrinsic.ptr<double>()[3], extrinsic.ptr<double>()[0],
-                                                     extrinsic.ptr<double>()[1],extrinsic.ptr<double>()[2]));
-
-        pFrame->Tcw.setQuaternion(pFrame->Tcw.unit_quaternion().normalized());
-        pFrame->Tcw.translation()[0] = extrinsic.ptr<double>()[4];
-        pFrame->Tcw.translation()[1] = extrinsic.ptr<double>()[5];
-        pFrame->Tcw.translation()[2] = extrinsic.ptr<double>()[6];
-    }
-
-    cout << pFrame->Tcw.unit_quaternion().coeffs() << endl;
-    cout << pFrame->Tcw.translation() << endl;
-
-//    for (auto pMapLine : pFrame->mvpMapLine)
-//    {
-//        if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
-//            continue;
-//        cout << pMapLine->mID << " : "
-//             << pMapLine->mPoseStartw.transpose() << " | "
-//             << pMapLine->mPoseEndw.transpose() << endl;
-//    }
 
     if (!summary.IsSolutionUsable())
     {
@@ -518,12 +516,46 @@ void Optimizer::PoseOptimization(Frame *pFrame)
              << " Time (s): " << summary.total_time_in_seconds << endl;
     }
 
-//    vresiduals = GetReprojectionErrorNorms(problem);
-//
-//    for (auto residual : vresiduals)
+    cout << pFrame->Tcw.unit_quaternion().coeffs() << endl;
+    cout << pFrame->Tcw.translation() << endl;
+
+    // remove the outliers
+//    RemoveOutliers(problem, 10);
+//    options.max_solver_time_in_seconds = 0.070;
+//    ceres::Solve(options, &problem, &summary);
+
+//    if (!summary.IsSolutionUsable())
 //    {
-//        cout << residual << endl;
+//        cout << "Pose Optimization failed." << endl;
 //    }
+//    else
+//    {
+//        // Display statistics about the minimization
+//        cout << summary.BriefReport() << endl
+//             << " residuals number: " << summary.num_residuals << endl
+//             << " Initial RMSE: " << sqrt(summary.initial_cost / summary.num_residuals) << endl
+//             << " Final RMSE: " << sqrt(summary.final_cost / summary.num_residuals) << endl
+//             << " Time (s): " << summary.total_time_in_seconds << endl;
+//    }
+
+//    cout << pFrame->Tcw.unit_quaternion().coeffs() << endl;
+//    cout << pFrame->Tcw.translation() << endl;
+
+//    for (auto pMapLine : pFrame->mvpMapLine)
+//    {
+//        if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
+//            continue;
+//        cout << pMapLine->mID << " : "
+//             << pMapLine->mPoseStartw.transpose() << " | "
+//             << pMapLine->mPoseEndw.transpose() << endl;
+//    }
+
+    vresiduals = GetReprojectionErrorNorms(problem);
+
+    for (auto residual : vresiduals)
+    {
+        cout << residual << endl;
+    }
 
 } // void Optimizer::PoseOptimization(Frame *pFrame)
 
@@ -545,21 +577,9 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
 
     K = pFrame->mpCamera->GetCameraIntrinsic();
 
-    cv::Mat extrinsic(7, 1, CV_64FC1);
-
-    {
-        extrinsic.ptr<double>()[0] = PoseInc.unit_quaternion().x();
-        extrinsic.ptr<double>()[1] = PoseInc.unit_quaternion().y();
-        extrinsic.ptr<double>()[2] = PoseInc.unit_quaternion().z();
-        extrinsic.ptr<double>()[3] = PoseInc.unit_quaternion().w();
-        extrinsic.ptr<double>()[4] = PoseInc.translation()[0];
-        extrinsic.ptr<double>()[5] = PoseInc.translation()[1];
-        extrinsic.ptr<double>()[6] = PoseInc.translation()[2];
-    }
-
     ceres::Problem problem;
 
-    problem.AddParameterBlock(extrinsic.ptr<double>(), 7, new PoseLocalParameterization());
+    problem.AddParameterBlock(PoseInc.data(), 7, new PoseLocalParameterization());
 
     ceres::LossFunction* lossfunction = new ceres::CauchyLoss(1);   // loss function make bundle adjustment robuster. HuberLoss
 
@@ -582,7 +602,7 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
                                                                      vpPointFeature2DCur[i]->mpixel[0], vpPointFeature2DCur[i]->mpixel[1],
                                                                      pointSqrtInforMatrix);
 
-        problem.AddResidualBlock( costfunction, lossfunction, extrinsic.ptr<double>(), &vpPointFeature2DLast[i]->mPoint3dw.x());
+        problem.AddResidualBlock( costfunction, lossfunction, PoseInc.data(), &vpPointFeature2DLast[i]->mPoint3dw.x());
 
         problem.AddParameterBlock(&vpPointFeature2DLast[i]->mPoint3dw.x(), 3);
 
@@ -604,7 +624,7 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
                                                                          vpLineFeature2DCur[i]->mStartpixel,
                                                                          vpLineFeature2DCur[i]->mEndpixel, lineSqrtInforMatrix);
 
-        problem.AddResidualBlock(costFunction, lossfunction, extrinsic.ptr<double>(),
+        problem.AddResidualBlock(costFunction, lossfunction, PoseInc.data(),
                                  &vpLineFeature2DLast[i]->mStartPoint3dw.x(),
                                  &vpLineFeature2DLast[i]->mEndPoint3dw.x());
 
@@ -623,17 +643,8 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
 
-    {
-        // it is very important that the scale data is the first position in the quaternion data type in the eigen
-        // but if you use pointer to use the data, the scale date is the last position.
-        PoseInc.setQuaternion(Eigen::Quaterniond(extrinsic.ptr<double>()[3], extrinsic.ptr<double>()[0],
-                                                 extrinsic.ptr<double>()[1],extrinsic.ptr<double>()[2]));
 
-        PoseInc.setQuaternion(PoseInc.unit_quaternion().normalized());
-        PoseInc.translation()[0] = extrinsic.ptr<double>()[4];
-        PoseInc.translation()[1] = extrinsic.ptr<double>()[5];
-        PoseInc.translation()[2] = extrinsic.ptr<double>()[6];
-    }
+    PoseInc.setQuaternion(PoseInc.unit_quaternion().normalized());
 
     if (!summary.IsSolutionUsable())
     {
@@ -774,7 +785,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
 
             KeyFrame* pKFi = pFrame->mpKeyFrame;
 
-            if (pKFi->mBAFixedForKF != pKeyFrame->GetFrameID() && pKFi->mBAFixedForKF != pKeyFrame->GetFrameID())
+            if (pKFi->mBALocalForKF != pKeyFrame->GetFrameID() && pKFi->mBAFixedForKF != pKeyFrame->GetFrameID())
             {
                 pKFi->mBAFixedForKF = pKeyFrame->GetFrameID();
                 if (!pKFi->isBad())
@@ -794,10 +805,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
         problem.AddParameterBlock(pKeyFrame->Tcw.data(), 7, new PoseLocalParameterization());
     }
 
-//    for (auto pFixedKeyFrame : lFixedCameras)
-//    {
-//        problem.SetParameterBlockConstant(pFixedKeyFrame->Tcw.data());
-//    }
+    for (auto pFixedKeyFrame : lFixedCameras)
+    {
+        problem.AddParameterBlock(pFixedKeyFrame->Tcw.data(), 7, new PoseLocalParameterization());
+        problem.SetParameterBlockConstant(pFixedKeyFrame->Tcw.data());
+    }
 
     cout << "ComputeMapPointCost: " << endl;
 

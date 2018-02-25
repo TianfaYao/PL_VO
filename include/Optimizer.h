@@ -133,7 +133,7 @@ public:
 
     static double VectorStdvMad(vector<double> vresidues_);
 
-    static void PoseOptimization(Frame *pFrame);
+    static void PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame);
 
     static void PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
                                       vector<PointFeature2D *> &vpPointFeature2DLast,

@@ -97,10 +97,7 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
 
 //        mpcurrentFrame->MapLinePointShow();
 
-        Optimizer::PoseOptimization(mpcurrentFrame);
-
-        cout << mpcurrentFrame->Tcw.unit_quaternion().coeffs() << endl;
-        cout << mpcurrentFrame->Tcw.translation() << endl;
+        Optimizer::PoseOptimization(mpcurrentFrame, mpLastKeyFrame);
 
         cv::Mat showimg;
         cv::drawMatches(mlastimagergb, mpLastKeyFrame->mvKeyPoint, mimagergb, mpcurrentFrame->mvKeyPoint,
@@ -239,11 +236,11 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
 
             if (pMapPoint->mPosew.isZero())
             {
-                if (!pcurPointFeature->mPoint3dw.isZero())
-                {
-                    pMapPoint->mPosew = mpcurrentFrame->Tcw.inverse()*pcurPointFeature->mPoint3dw;
-                    cout << "use the current frame's observation to updae the MapPoint: " << pcurPointFeature->mPoint3dw.transpose() << endl;
-                }
+//                if (!pcurPointFeature->mPoint3dw.isZero())
+//                {
+//                    pMapPoint->mPosew = mpcurrentFrame->Tcw.inverse()*pcurPointFeature->mPoint3dw;
+//                    cout << "use the current frame's observation to updae the MapPoint: " << pcurPointFeature->mPoint3dw.transpose() << endl;
+//                }
             }
 
             mpcurrentFrame->mvpMapPoint.push_back(pMapPoint);
@@ -310,17 +307,17 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
 
             if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
             {
-                if (!pcurLineFeature->mStartPoint3dw.isZero())
-                {
-                    pMapLine->mPoseStartw =  mpcurrentFrame->Tcw.inverse()*pcurLineFeature->mStartPoint3dw;
-                    cout << "use the current frame's observation to updae the MapLine: " << pcurLineFeature->mStartPoint3dw.transpose() << endl;
-                }
-
-                if (!pcurLineFeature->mEndPoint3dw.isZero())
-                {
-                    pMapLine->mPoseEndw = mpcurrentFrame->Tcw.inverse()*pcurLineFeature->mEndPoint3dw;
-                    cout << "use the current frame's observation to updae the MapLine: " << pcurLineFeature->mEndPoint3dw.transpose() << endl;
-                }
+//                if (!pcurLineFeature->mStartPoint3dw.isZero())
+//                {
+//                    pMapLine->mPoseStartw =  mpcurrentFrame->Tcw.inverse()*pcurLineFeature->mStartPoint3dw;
+//                    cout << "use the current frame's observation to updae the MapLine: " << pcurLineFeature->mStartPoint3dw.transpose() << endl;
+//                }
+//
+//                if (!pcurLineFeature->mEndPoint3dw.isZero())
+//                {
+//                    pMapLine->mPoseEndw = mpcurrentFrame->Tcw.inverse()*pcurLineFeature->mEndPoint3dw;
+//                    cout << "use the current frame's observation to updae the MapLine: " << pcurLineFeature->mEndPoint3dw.transpose() << endl;
+//                }
             }
 
             mpcurrentFrame->mvpMapLine.push_back(pMapLine);

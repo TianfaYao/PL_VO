@@ -43,8 +43,8 @@ void System::SaveTrajectory(const string &filename)
 
     for (auto pframe: mpMap->mvpFrames)
     {
-        if (pframe->isKeyFrame())
-            ofstreamer << setprecision(6) << pframe->mpKeyFrame->mtimeStamp << " " << pframe->Tcw.translation().transpose() << endl;
+//        if (pframe->isKeyFrame())
+            ofstreamer << setprecision(6) << pframe->mtimeStamp << " " << pframe->Tcw.translation().transpose() << endl;
     }
 
     ofstreamer.close();
