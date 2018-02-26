@@ -29,7 +29,7 @@ System::~System()
 Eigen::Matrix<double, 7, 1>  System::TrackRGBD(const cv::Mat &imagergb, const cv::Mat &imagedepth, const double &timeStamps)
 {
     mpTracking->Track(imagergb, imagedepth, timeStamps);
-//    mpLocalMapping->Run();
+    mpLocalMapping->Run();
 }
 
 void System::SaveTrajectory(const string &filename)
@@ -44,7 +44,7 @@ void System::SaveTrajectory(const string &filename)
     for (auto pframe: mpMap->mvpFrames)
     {
 //        if (pframe->isKeyFrame())
-            ofstreamer << setprecision(6) << pframe->mtimeStamp << " " << pframe->Tcw.translation().transpose() << endl;
+            ofstreamer << setprecision(6) << pframe->mtimeStamp << " " << pframe->Tcw.inverse().translation().transpose() << endl;
     }
 
     ofstreamer.close();

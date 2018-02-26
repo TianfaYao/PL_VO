@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-set(OpenCV_DIR "/home/xiarui/workspace/library/opencv-3.2.0/install/share/OpenCV")
+set(OpenCV_DIR "/home/rain/workspace/library/opencv-3.2.0/install/share/OpenCV")
 
 find_package(OpenCV 3 REQUIRED)
 find_package(Glog REQUIRED)

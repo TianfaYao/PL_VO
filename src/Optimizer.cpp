@@ -416,6 +416,8 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 
         problem.AddParameterBlock(&pMapPoint->mPosew.x(), 3);
 
+        CHECK(pMapPoint->mmpPointFeature2D.count(pKeyFrame->GetFrameID()) == 1);
+
         pointSqrtInforMatrix = Eigen::Matrix2d::Identity()*
                                sqrt(pKeyFrame->pFrame->mvPointInvLevelSigma2[pMapPoint->mmpPointFeature2D[pKeyFrame->GetFrameID()]->mlevel]);
 
@@ -424,7 +426,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
         ceres::CostFunction *costfunction2 = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                      observed[0], observed[1], pointSqrtInforMatrix);
 
-        problem.AddResidualBlock(costfunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapPoint->mPosew.x());
+//        problem.AddResidualBlock(costfunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapPoint->mPosew.x());
     }
 
     // add the MapLine parameterblocks and residuals
@@ -468,6 +470,8 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
         lineSqrtInforMatrix = Eigen::Matrix2d::Identity()*
                               sqrt(pKeyFrame->pFrame->mvLineInvLevelSigma2[pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mlevel]);
 
+        CHECK(pMapLine->mmpLineFeature2D.count(pKeyFrame->GetFrameID()) == 1);
+
         observedStart = pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mStartpixel;
         observedEnd = pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mEndpixel;
         observedLineCoef = pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mLineCoef;
@@ -478,8 +482,8 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 //        double cost;
 //        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
 
-        problem.AddResidualBlock(costFunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapLine->mPoseStartw.x(),
-                                 &pMapLine->mPoseEndw.x());
+//        problem.AddResidualBlock(costFunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapLine->mPoseStartw.x(),
+//                                 &pMapLine->mPoseEndw.x());
     }
 
     RemoveOutliers(problem, 20);

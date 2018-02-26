@@ -18,6 +18,10 @@ using namespace std;
 void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,
                 vector<string> &vstrImageFilenamesD, vector<double> &vTimestamps);
 
+void SaveGroundTruthfile(const string &strGroundTruthname,vector<pair<double, Sophus::SE3d>> &vSE3GroundTruth);
+
+void LoadGroundTruth(const string &strGroundTruthname, vector<pair<double, Sophus::SE3d>> &vSE3GT);
+
 int main(int argc, char **argv)
 {
 
@@ -27,19 +31,25 @@ int main(int argc, char **argv)
     vector<string> vstrImageFilenamesD;
     vector<double> vTimestamps;
 
-    string strAssociationFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg1_desk/associate.txt");
-    string strSequenceFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg1_desk");
+    string strAssociationFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg1_desk/associate.txt");
+    string strGroundTruthFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg1_desk/groundtruth.txt");
+    string strSequenceFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg1_desk");
     string strSettingsFile("../Example/TUM1.yaml");
 
-//    string strAssociationFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far/associations.txt");
-//    string strSequenceFilename("/home/xiarui/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far");
+//    string strAssociationFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far/associations.txt");
+//    string strSequenceFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg3_structure_notexture_far");
 //    string strSettingsFile("../Example/TUM3.yaml");
 
     cout << "datasets asscociateion file: " << strAssociationFilename << endl;
     cout << "datasets sequence file: " << strSequenceFilename << endl;
+    cout << "datasets ground truth: " << strGroundTruthFilename << endl;
     cout << "setting file: "<< strSettingsFile << endl;
 
     LoadImages(strAssociationFilename, vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps);
+
+//    vector<pair<double, Sophus::SE3d>> vSE3GT;
+//    LoadGroundTruth(strGroundTruthFilename, vSE3GT);
+//    return 0;
 
     size_t imagesize = vstrImageFilenamesRGB.size();
 
@@ -87,7 +97,7 @@ void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageF
     fAssociation.open(strAssociationFilename.c_str());
 
     if (!fAssociation.is_open())
-        cerr << "the file path is wrong!" << endl;
+        cerr << "the file path is wrong! " << endl;
 
     while(!fAssociation.eof())
     {
@@ -108,4 +118,79 @@ void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageF
             vstrImageFilenamesD.push_back(sD);
         }
     }
+}
+
+void LoadGroundTruth(const string &strGroundTruthname, vector<pair<double, Sophus::SE3d>> &vSE3GT)
+{
+    ifstream fGroundTruth;
+    fGroundTruth.open(strGroundTruthname.c_str());
+
+    if (!fGroundTruth.is_open())
+        cerr << "the groundtruth file path is wrong! " << endl;
+
+
+    while(!fGroundTruth.eof())
+    {
+        string s;
+        getline(fGroundTruth, s);
+
+        if (s[0] == '#')
+            continue;
+
+        if (!s.empty())
+        {
+            stringstream ss;
+            ss << s;
+
+            double t, tx, ty, tz, qx, qy, qz, qw;
+            ss >> t;
+            ss >> tx;
+            ss >> ty;
+            ss >> tz;
+            ss >> qx;
+            ss >> qy;
+            ss >> qz;
+            ss >> qw;
+
+            Sophus::SE3d SE3_(Eigen::Quaterniond(qw, qx, qy, qz), Eigen::Vector3d(tx, ty, tz));
+            vSE3GT.emplace_back(make_pair(t, SE3_));
+
+        }
+    }
+
+    Sophus::SE3d SE30;
+
+    SE30 = vSE3GT[0].second;
+    SE30 = SE30.inverse();
+
+    for (auto &SE3_ : vSE3GT)
+    {
+        SE3_.second = SE30*SE3_.second;
+    }
+
+    SaveGroundTruthfile("groundtruth1.txt", vSE3GT);
+}
+
+void SaveGroundTruthfile(const string &strGroundTruthname,vector<pair<double, Sophus::SE3d>> &vSE3GroundTruth)
+{
+    ofstream fGrountTruth(strGroundTruthname);
+
+    CHECK(fGrountTruth.is_open());
+
+    for (auto SE3_ : vSE3GroundTruth)
+    {
+        fGrountTruth << setprecision(6)
+                     << to_string(SE3_.first) << " "
+                     << setprecision(7)
+                     << SE3_.second.translation()[0] << " "
+                     << SE3_.second.translation()[1] << " "
+                     << SE3_.second.translation()[2] << " "
+                     << SE3_.second.so3().unit_quaternion().coeffs()[0] << " "
+                     << SE3_.second.so3().unit_quaternion().coeffs()[1] << " "
+                     << SE3_.second.so3().unit_quaternion().coeffs()[2] << " "
+                     << SE3_.second.so3().unit_quaternion().coeffs()[3] << " "
+                     << endl;
+    }
+
+    fGrountTruth.close();
 }
