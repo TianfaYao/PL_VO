@@ -404,6 +404,12 @@ Sophus::SE3d KeyFrame::GetPose()
     return Tcw;
 }
 
+Eigen::Vector3d KeyFrame::GetCameraCenter()
+{
+    unique_lock<mutex> lock(mMutexPose);
+    return Tcw.inverse().translation();
+}
+
 void KeyFrame::SetPose(Sophus::SE3d Tcw_)
 {
     unique_lock<mutex> lock(mMutexPose);
@@ -414,6 +420,32 @@ bool KeyFrame::isBad()
 {
     unique_lock<mutex> lock(mMutexConnections);
     return mbBad;
+}
+
+KeyFrame* KeyFrame::GetParent()
+{
+    unique_lock<mutex> lockCon(mMutexConnections);
+    return mpParent;
+}
+
+vector<KeyFrame*> KeyFrame::GetCovisiblesByWeight(const int &w)
+{
+    unique_lock<mutex> lockCon(mMutexConnections);
+
+    if (mvpOrderedConnectedKeyFrames.empty())
+        return vector<KeyFrame*>();
+
+    vector<int>::iterator it = upper_bound(mvOrderedWeights.begin(), mvOrderedWeights.end(), w, KeyFrame::weightComp);
+
+    if (it == mvOrderedWeights.end())
+    {
+        return vector<KeyFrame*>();
+    }
+    else
+    {
+        int n = it - mvOrderedWeights.begin();
+        return vector<KeyFrame*>(mvpOrderedConnectedKeyFrames.begin(), mvpOrderedConnectedKeyFrames.begin() + n);
+    }
 }
 
 } // namespace PL_VO

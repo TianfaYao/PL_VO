@@ -172,9 +172,10 @@ public:
 
     Map();
 
-    vector<KeyFrame*> GetAllKeyFrames();
-    vector<MapPoint*> GetAllMapPoints();
-    vector<MapLine*> GetAllMapLines();
+    vector<KeyFrame *> GetAllKeyFrames();
+    const vector<KeyFrame *> GetAllKeyFrames() const;
+    vector<MapPoint *> GetAllMapPoints();
+    vector<MapLine *> GetAllMapLines();
 
     void AddKeyFrame(KeyFrame *pKeyFrame);
     void AddMapPoint(MapPoint *pMapPoint);
@@ -193,6 +194,7 @@ protected:
     set<KeyFrame*> mspKeyFrame;
 
     mutex mMutexMap;
+    int a = 0;
 
 }; // class Map
 

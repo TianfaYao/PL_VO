@@ -461,8 +461,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 //        double cost;
 //        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
 
-        problem.AddResidualBlock(costFunction, lossfunction, pFrame->Tcw.data(), &pMapLine->mPoseStartw.x(),
-                                 &pMapLine->mPoseEndw.x());
+        problem.AddResidualBlock(costFunction, lossfunction, pFrame->Tcw.data(), &pMapLine->mPoseStartw.x(), &pMapLine->mPoseEndw.x());
 
         problem.AddParameterBlock(&pMapLine->mPoseStartw.x(), 3);
         problem.AddParameterBlock(&pMapLine->mPoseEndw.x(), 3);
@@ -482,8 +481,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 //        double cost;
 //        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
 
-//        problem.AddResidualBlock(costFunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapLine->mPoseStartw.x(),
-//                                 &pMapLine->mPoseEndw.x());
+//        problem.AddResidualBlock(costFunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapLine->mPoseStartw.x(), &pMapLine->mPoseEndw.x());
     }
 
     RemoveOutliers(problem, 20);

@@ -106,6 +106,11 @@ vector<KeyFrame*> Map::GetAllKeyFrames()
     return vector<KeyFrame*>(mspKeyFrame.begin(), mspKeyFrame.end());
 }
 
+const vector<KeyFrame *> Map::GetAllKeyFrames() const
+{
+    return vector<KeyFrame*>(mspKeyFrame.begin(), mspKeyFrame.end());
+}
+
 vector<MapPoint*> Map::GetAllMapPoints()
 {
     unique_lock<mutex> lock(mMutexMap);

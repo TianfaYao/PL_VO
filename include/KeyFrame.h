@@ -46,9 +46,15 @@ public:
 
     Sophus::SE3d GetPose();
 
+    Eigen::Vector3d GetCameraCenter();
+
     void SetPose(Sophus::SE3d Tcw_);
 
     bool isBad();
+
+    KeyFrame* GetParent();
+
+    vector<KeyFrame*> GetCovisiblesByWeight(const int &w);
 
     Camera *mpCamera = nullptr;
     Map *mpMap = nullptr;
@@ -83,6 +89,11 @@ public:
 
     size_t mBALocalForKF;
     size_t mBAFixedForKF;
+
+    static bool weightComp( int a, int b)
+    {
+        return a>b;
+    }
 
 private:
 

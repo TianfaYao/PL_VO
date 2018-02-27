@@ -14,6 +14,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
+
 #include "Camera.h"
 #include "Frame.h"
 #include "LineFeature.h"
@@ -22,6 +23,8 @@
 #include "Optimizer.h"
 #include "KeyFrame.h"
 #include "LocalMapping.h"
+#include "Viewer.h"
+#include "MapDrawer.h"
 
 using namespace std;
 
@@ -35,6 +38,8 @@ class PointFeature;
 class Map;
 class KeyFrame;
 class LocalMapping;
+class Viewer;
+class MapDrawer;
 
 class Tracking
 {
@@ -61,6 +66,12 @@ public:
 
     void CreateNewKeyFrame();
 
+    cv::Mat GetImageShow();
+
+    void SetViewer(Viewer *pViewer);
+
+    void SetMapDrawer(MapDrawer *pMapDrawer);
+
 
 private:
 
@@ -76,6 +87,8 @@ private:
     PointFeature *mpPointFeature = nullptr;
     LocalMapping *mpLocalMapping = nullptr;
     Map *mpMap = nullptr;
+    Viewer *mpViewer = nullptr;
+    MapDrawer *mpMapDrawer = nullptr;
 
     Sophus::SE3d mPoseInc;
 

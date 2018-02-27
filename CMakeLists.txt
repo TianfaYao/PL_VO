@@ -12,6 +12,7 @@ find_package(OpenCV 3 REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(Sophus REQUIRED)
+find_package(Pangolin REQUIRED)
 
 include_directories("/usr/include/eigen3/")
 
@@ -39,12 +40,16 @@ add_library(${PROJECT_NAME} SHARED
     src/Map.cpp
     src/Optimizer.cpp
     src/KeyFrame.cpp
-    src/LocalMapping.cpp)
+    src/LocalMapping.cpp
+    src/Viewer.cpp
+    src/MapDrawer.cpp
+)
 
 target_link_libraries(${PROJECT_NAME}
     ${OpenCV_LIBRARIES}
     ${CERES_LIBRARIES}
     ${Sophus_LIBRARIES}
+    ${Pangolin_LIBRARIES}
     ${PROJECT_SOURCE_DIR}/thirdparty/LSD/lib/liblsd.so
     ${PROJECT_SOURCE_DIR}/thirdparty/line_descriptor/lib/liblinedesc.so
 )

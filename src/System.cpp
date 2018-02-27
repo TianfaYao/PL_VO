@@ -13,10 +13,18 @@ System::System(const string &strSettingsFile)
     mpTracking = new Tracking(mpCamera);
     mpMap = new Map;
     mpLocalMapping = new LocalMapping(mpMap);
+    mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
+    mpViewer = new Viewer(strSettingsFile, mpMapDrawer);
 
     mpLocalMapping->SetTracking(mpTracking);
     mpTracking->SetMap(mpMap);
     mpTracking->SetLocalMapping(mpLocalMapping);
+    mpTracking->SetViewer(mpViewer);
+    mpTracking->SetMapDrawer(mpMapDrawer);
+
+    if (true)
+        mptViewer = new thread(&Viewer::Run, mpViewer);
+
 
 //    mptLocalMapping = new thread(&LocalMapping::Run, mpLocalMapping);
 }
@@ -24,6 +32,9 @@ System::System(const string &strSettingsFile)
 System::~System()
 {
     delete mpCamera;
+    delete mpTracking;
+    delete mpMap;
+    delete mpLocalMapping;
 }
 
 Eigen::Matrix<double, 7, 1>  System::TrackRGBD(const cv::Mat &imagergb, const cv::Mat &imagedepth, const double &timeStamps)

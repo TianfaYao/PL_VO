@@ -100,14 +100,16 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
         Optimizer::PoseOptimization(mpcurrentFrame, mpLastKeyFrame);
 
         cv::Mat showimg;
+        cv::Mat showimg2;
         cv::drawMatches(mlastimagergb, mpLastKeyFrame->mvKeyPoint, mimagergb, mpcurrentFrame->mvKeyPoint,
-                        vpointRefineMatches, showimg);
+                        vpointRefineMatches, showimg2);
 
         std::vector<char> mask(vlineRefineMatches.size(), 1);
         cv::line_descriptor::drawLineMatches(mlastimagergb, mpLastKeyFrame->mvKeyLine, mimagergb, mpcurrentFrame->mvKeyLine,
                                              vlineRefineMatches, showimg,  cv::Scalar::all(-1), cv::Scalar::all(-1), mask,
                                              cv::line_descriptor::DrawLinesMatchesFlags::DEFAULT);
-        cv::imshow(" ", showimg);
+        cv::imshow("line match", showimg);
+        cv::imshow("point match", showimg2);
         cv::waitKey(5);
     }
 
@@ -121,6 +123,11 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
 
     mpMap->mvpFrames.push_back(mpcurrentFrame);
     mplastFrame = new Frame(*mpcurrentFrame);
+
+    if (!mimagergb.empty())
+        mpViewer->UpdateShowImage(this);
+
+    mpMapDrawer->SetCurrentCameraPose(mpcurrentFrame->Tcw.inverse().matrix3x4());
 }
 
 bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches)
@@ -405,6 +412,21 @@ void Tracking::CreateNewKeyFrame()
     mpLastKeyFrame = pKeyFrame;
 
     mpLocalMapping->InsertKeyFrame(pKeyFrame);
+}
+
+cv::Mat Tracking::GetImageShow()
+{
+    return mimagergb;
+}
+
+void Tracking::SetViewer(Viewer *pViewer)
+{
+    mpViewer = pViewer;
+}
+
+void Tracking::SetMapDrawer(MapDrawer *pMapDrawer)
+{
+    mpMapDrawer = pMapDrawer;
 }
 
 

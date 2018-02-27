@@ -10,6 +10,8 @@
 #include "Camera.h"
 #include "Tracking.h"
 #include "LocalMapping.h"
+#include "MapDrawer.h"
+#include "Viewer.h"
 
 using namespace std;
 
@@ -20,6 +22,8 @@ class Camera;
 class Tracking;
 class Map;
 class LocalMapping;
+class MapDrawer;
+class Viewer;
 
 class System
 {
@@ -39,6 +43,8 @@ private:
     Tracking *mpTracking;
     LocalMapping *mpLocalMapping;
     Map *mpMap;
+    MapDrawer *mpMapDrawer;
+    Viewer *mpViewer;
 
     thread* mptLocalMapping;
     thread* mptViewer;
