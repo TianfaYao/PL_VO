@@ -127,7 +127,12 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
     if (!mimagergb.empty())
         mpViewer->UpdateShowImage(this);
 
-    mpMapDrawer->SetCurrentCameraPose(mpcurrentFrame->Tcw.inverse().matrix3x4());
+    if (mpMapDrawer)
+        mpMapDrawer->SetCurrentCameraPose(mpcurrentFrame->Tcw.inverse().matrix3x4());
+
+    if (mpViewer)
+        mpViewer->Release();
+
 }
 
 bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches)

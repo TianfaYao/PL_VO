@@ -34,7 +34,23 @@ public:
 
     void Run();
 
+    void RequestFinish();
+
+    void RequestStop();
+
+    bool isFinished();
+
+    bool isStopped();
+
+    void Release();
+
 private:
+
+    bool Stop();
+
+    bool CheckFinish();
+
+    void SetFinish();
 
     Tracking *mpTracking = nullptr;
     MapDrawer *mpMapDrawer = nullptr;
@@ -46,7 +62,14 @@ private:
 
     float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
 
+    bool mbFinishRequested = false;
+    bool mbFinished = true;
+    bool mbStopped = true;
+    bool mbStopRequested = false;
+
     mutex mMutex;
+    mutex mMutexStop;
+    mutex mMutexFinish;
 
 }; // class Viewer
 

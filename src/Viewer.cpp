@@ -44,6 +44,9 @@ void Viewer::UpdateShowImage(Tracking *pTracking)
 
 void Viewer::Run()
 {
+    mbFinished = false;
+    mbStopped = false;
+
     pangolin::CreateWindowAndBind("RAIN_VIO: Map Viewer", 1440, 900); // 1024 768
 
     glEnable(GL_DEPTH_TEST);
@@ -114,8 +117,83 @@ void Viewer::Run()
 
         pangolin::FinishFrame();
 
+        if (Stop())
+        {
+            while(isStopped())
+            {
+                usleep(3000);
+            }
+        }
+
+        if (CheckFinish())
+            break;
+
     } // while(1)
 
+    SetFinish();
+
 } // Viewer::Run()
+
+void Viewer::RequestFinish()
+{
+    unique_lock<mutex> lock(mMutexFinish);
+    mbFinishRequested = true;
+}
+
+bool Viewer::CheckFinish()
+{
+    unique_lock<mutex> lock(mMutexFinish);
+    return mbFinishRequested;
+}
+
+void Viewer::SetFinish()
+{
+    unique_lock<mutex> lock(mMutexFinish);
+    mbFinished = true;
+}
+
+bool Viewer::isFinished()
+{
+    unique_lock<mutex> lock(mMutexFinish);
+    return mbFinished;
+}
+
+void Viewer::RequestStop()
+{
+    unique_lock<mutex> lock(mMutexStop);
+    if (!mbStopped)
+        mbStopRequested = true;
+}
+
+bool Viewer::isStopped()
+{
+    unique_lock<mutex> lock(mMutexStop);
+    return mbStopped;
+}
+
+bool Viewer::Stop()
+{
+    unique_lock<mutex> lock(mMutexStop);
+    unique_lock<mutex> lock2(mMutexFinish);
+
+    if (mbFinishRequested)
+    {
+        return false;
+    }
+    else if (mbStopRequested)
+    {
+        mbStopped = true;
+        mbStopRequested = false;
+        return true;
+    }
+
+    return false;
+}
+
+void Viewer::Release()
+{
+    unique_lock<mutex> lock(mMutexStop);
+    mbStopped = false;
+}
 
 } // namespace PL_VO

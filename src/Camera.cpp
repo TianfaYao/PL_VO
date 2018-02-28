@@ -41,6 +41,8 @@ Camera::Camera(const string &strSettingsFile)
     mFeatureShow = fsSettings["Viewer.FeatureShow"];
 
     mdepthscale = fsSettings["Camera.depth_scale"];
+
+    CHECK(mdepthscale > 0);
 }
 
 Camera::Camera()

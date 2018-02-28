@@ -38,6 +38,8 @@ public:
 
     void SaveTrajectory(const string &filename);
 
+    void Shutdown();
+
 private:
     Camera *mpCamera;
     Tracking *mpTracking;

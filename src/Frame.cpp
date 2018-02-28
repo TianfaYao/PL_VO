@@ -137,8 +137,11 @@ void Frame::detectFeature(const cv::Mat &imagergb, const cv::Mat &imagedepth)
     }
     else
     {
-        mpPointFeature->detectPointfeature(imagergb, mvKeyPoint, mpointDesc);
-        mpLineFeature->detectLinefeature(imagergb, mvKeyLine, mlineDesc, minLinelength);
+        if (Config::hasPoints())
+            mpPointFeature->detectPointfeature(imagergb, mvKeyPoint, mpointDesc);
+
+        if (Config::hasLines())
+            mpLineFeature->detectLinefeature(imagergb, mvKeyLine, mlineDesc, minLinelength);
     }
 
 //    cout << "the paraller detect the point feature and line feature (ms): " << tictocdetectfeature.toc() << endl;

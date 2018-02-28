@@ -61,4 +61,16 @@ void System::SaveTrajectory(const string &filename)
     ofstreamer.close();
 }
 
+void System::Shutdown()
+{
+
+    if (mpViewer)
+    {
+        mpViewer->RequestFinish();
+        while (!mpViewer->isFinished())
+            usleep(5000);
+    }
+
+}
+
 } // namespace PL_VO

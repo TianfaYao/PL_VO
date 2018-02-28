@@ -228,15 +228,6 @@ void MapDrawer::SetCurrentCameraPose(const Eigen::Matrix<double, 3, 4> &Twc)
 
 void MapDrawer::GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M)
 {
-    Eigen::Matrix3d Rwc;
-    Eigen::Vector3d twc;
-
-    {
-        unique_lock<mutex> lock(mMutexCamera);
-        Rwc = mCameraPose.block<3, 3>(0, 0).transpose();
-        twc = -Rwc*mCameraPose.block<3, 1>(0, 3);
-    }
-
     M = toOpenGLMatrix(mCameraPose);
 }
 
