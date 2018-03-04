@@ -2,7 +2,7 @@
 
 ## 1.Description
 The RGB-D vision odometry with point feature and line feature. 
-
+![tum_f2_desk](https://github.com/Xiarain/PL_VO/blob/optimization/Example/Result/tum-f2-desk.png)
 ## 2.Prerequisites
 
 ### OpenCV
