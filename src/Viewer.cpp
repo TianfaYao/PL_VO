@@ -58,6 +58,7 @@ void Viewer::Run()
     // the name of the buttion; default setting; whether the selection box;
     pangolin::Var<bool> menuFollowCamera("menu.Follow Camera",true,true);
     pangolin::Var<bool> menuShowPoints("menu.Show Points",true,true);
+    pangolin::Var<bool> menuShowLines("menu.Show Lines",true,true);
     pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames",true,true);
     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
@@ -74,7 +75,7 @@ void Viewer::Run()
             .SetHandler(new pangolin::Handler3D(s_cam));
 
     pangolin::View& rgbimage = pangolin::Display("image")
-            .SetBounds(0.60,0.9,0.55,1.0,(-1.0)*mImageWidth/mImageHeight)
+            .SetBounds(0.65,1.0,0.65,1.0,(-1.0)*mImageWidth/mImageHeight)
             .SetLock(pangolin::LockLeft, pangolin::LockBottom);
 
     pangolin::GlTexture imageTexture(mImageWidth,mImageHeight,GL_RGB,false,0,GL_RGB,GL_UNSIGNED_BYTE);
@@ -96,9 +97,14 @@ void Viewer::Run()
 
         mpMapDrawer->DrawCurrentCamera(Twc);
 
-        if(menuShowKeyFrames || menuShowGraph)
+        if (menuShowKeyFrames || menuShowGraph)
             mpMapDrawer->DrawKeyFrames(menuShowKeyFrames, menuShowGraph);
-//        mpMapDrawer->DrawMapPoints();
+
+        if (menuShowPoints)
+            mpMapDrawer->DrawMapPoints();
+
+        if (menuShowLines)
+            mpMapDrawer->DrawMapLines();
 
         glClearColor(1.0f,1.0f,1.0f,1.0f);
 

@@ -381,21 +381,35 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
     cout << pFrame->Tcw.unit_quaternion().coeffs() << endl;
     cout << pFrame->Tcw.translation() << endl;
 
+    cout << pKeyFrame->Tcw.unit_quaternion().coeffs() << endl;
+    cout << pKeyFrame->Tcw.translation() << endl;
     ceres::Problem problem;
 
     problem.AddParameterBlock(pFrame->Tcw.data(), 7, new PoseLocalParameterization());
     problem.AddParameterBlock(pKeyFrame->Tcw.data(), 7, new PoseLocalParameterization());
 //    problem.SetParameterBlockConstant(pKeyFrame->Tcw.data());
 
+    for (auto pMapLine : pFrame->mvpMapLine)
+    {
+        if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
+            continue;
+        cout << pMapLine->mID << " : "
+             << pMapLine->mPoseStartw.transpose() << " | "
+             << pMapLine->mPoseEndw.transpose() << endl;
+    }
+
     ceres::LossFunction* lossfunction = new ceres::CauchyLoss(1);   // loss function make bundle adjustment robuster. HuberLoss
 
     // add the MapPoint parameterblocks and residuals
     for (auto pMapPoint : pFrame->mvpMapPoint)
     {
+        if (pMapPoint->isBad())
+            continue;
+
         if (pMapPoint->mPosew.isZero())
             continue;
 
-        if (pFrame->GetFrameID() != 0)
+        if (pKeyFrame->GetFrameID() != 0)
             if (pMapPoint->GetObservedNum() <= 2)
                 continue;
 
@@ -412,30 +426,33 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
         ceres::CostFunction *costfunction = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                      observed[0], observed[1], pointSqrtInforMatrix);
 
-        problem.AddResidualBlock(costfunction, lossfunction, pFrame->Tcw.data(), &pMapPoint->mPosew.x());
+        problem.AddResidualBlock(costfunction, lossfunction, pFrame->Tcw.data(), pMapPoint->mPosew.data());
 
-        problem.AddParameterBlock(&pMapPoint->mPosew.x(), 3);
+        problem.AddParameterBlock(pMapPoint->mPosew.data(), 3);
 
         CHECK(pMapPoint->mmpPointFeature2D.count(pKeyFrame->GetFrameID()) == 1);
 
         pointSqrtInforMatrix = Eigen::Matrix2d::Identity()*
-                               sqrt(pKeyFrame->pFrame->mvPointInvLevelSigma2[pMapPoint->mmpPointFeature2D[pKeyFrame->GetFrameID()]->mlevel]);
+                               sqrt(pKeyFrame->mpFrame->mvPointInvLevelSigma2[pMapPoint->mmpPointFeature2D[pKeyFrame->GetFrameID()]->mlevel]);
 
         observed = pMapPoint->mmpPointFeature2D[pKeyFrame->GetFrameID()]->mpixel;
 
         ceres::CostFunction *costfunction2 = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                      observed[0], observed[1], pointSqrtInforMatrix);
 
-//        problem.AddResidualBlock(costfunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapPoint->mPosew.x());
+//        problem.AddResidualBlock(costfunction2, lossfunction, pKeyFrame->Tcw.data(), pMapPoint->mPosew.data());
     }
 
     // add the MapLine parameterblocks and residuals
     for (auto pMapLine : pFrame->mvpMapLine)
     {
+        if (pMapLine->isBad())
+            continue;
+
         if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
             continue;
 
-        if (pFrame->GetFrameID() != 0)
+        if (pKeyFrame->GetFrameID() != 0)
             if (pMapLine->GetObservedNum() <= 2)
                 continue;
 
@@ -461,13 +478,13 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 //        double cost;
 //        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
 
-        problem.AddResidualBlock(costFunction, lossfunction, pFrame->Tcw.data(), &pMapLine->mPoseStartw.x(), &pMapLine->mPoseEndw.x());
+        problem.AddResidualBlock(costFunction, lossfunction, pFrame->Tcw.data(), pMapLine->mPoseStartw.data(), pMapLine->mPoseEndw.data());
 
-        problem.AddParameterBlock(&pMapLine->mPoseStartw.x(), 3);
-        problem.AddParameterBlock(&pMapLine->mPoseEndw.x(), 3);
+        problem.AddParameterBlock(pMapLine->mPoseStartw.data(), 3);
+        problem.AddParameterBlock(pMapLine->mPoseEndw.data(), 3);
 
         lineSqrtInforMatrix = Eigen::Matrix2d::Identity()*
-                              sqrt(pKeyFrame->pFrame->mvLineInvLevelSigma2[pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mlevel]);
+                              sqrt(pKeyFrame->mpFrame->mvLineInvLevelSigma2[pMapLine->mmpLineFeature2D[pKeyFrame->GetFrameID()]->mlevel]);
 
         CHECK(pMapLine->mmpLineFeature2D.count(pKeyFrame->GetFrameID()) == 1);
 
@@ -481,7 +498,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 //        double cost;
 //        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
 
-//        problem.AddResidualBlock(costFunction2, lossfunction, pKeyFrame->Tcw.data(), &pMapLine->mPoseStartw.x(), &pMapLine->mPoseEndw.x());
+//        problem.AddResidualBlock(costFunction2, lossfunction, pKeyFrame->Tcw.data(), pMapLine->mPoseStartw.data(), pMapLine->mPoseEndw.data());
     }
 
     RemoveOutliers(problem, 20);
@@ -510,7 +527,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
     }
     else
     {
-        // Display statistics about the minimization
+        // Display statistics about the minimizatiopn
         cout << summary.BriefReport() << endl
              << " residuals number: " << summary.num_residuals << endl
              << " Initial RMSE: " << sqrt(summary.initial_cost / summary.num_residuals) << endl
@@ -521,36 +538,20 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
     cout << pFrame->Tcw.unit_quaternion().coeffs() << endl;
     cout << pFrame->Tcw.translation() << endl;
 
-    // remove the outliers
-//    RemoveOutliers(problem, 10);
-//    options.max_solver_time_in_seconds = 0.070;
-//    ceres::Solve(options, &problem, &summary);
-
-//    if (!summary.IsSolutionUsable())
-//    {
-//        cout << "Pose Optimization failed." << endl;
-//    }
-//    else
-//    {
-//        // Display statistics about the minimization
-//        cout << summary.BriefReport() << endl
-//             << " residuals number: " << summary.num_residuals << endl
-//             << " Initial RMSE: " << sqrt(summary.initial_cost / summary.num_residuals) << endl
-//             << " Final RMSE: " << sqrt(summary.final_cost / summary.num_residuals) << endl
-//             << " Time (s): " << summary.total_time_in_seconds << endl;
-//    }
+    cout << pKeyFrame->Tcw.unit_quaternion().coeffs() << endl;
+    cout << pKeyFrame->Tcw.translation() << endl;
 
 //    cout << pFrame->Tcw.unit_quaternion().coeffs() << endl;
 //    cout << pFrame->Tcw.translation() << endl;
 
-//    for (auto pMapLine : pFrame->mvpMapLine)
-//    {
-//        if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
-//            continue;
-//        cout << pMapLine->mID << " : "
-//             << pMapLine->mPoseStartw.transpose() << " | "
-//             << pMapLine->mPoseEndw.transpose() << endl;
-//    }
+    for (auto pMapLine : pFrame->mvpMapLine)
+    {
+        if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
+            continue;
+        cout << pMapLine->mID << " : "
+             << pMapLine->mPoseStartw.transpose() << " | "
+             << pMapLine->mPoseEndw.transpose() << endl;
+    }
 
     vresiduals = GetReprojectionErrorNorms(problem);
 
@@ -913,15 +914,15 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map
         }
     }
 
-    cout << "GetReprojectionErrorNorms: " << endl;
-
-    vector<double> vresiduals;
-    vresiduals = GetReprojectionErrorNorms(problem);
-
-    for (auto residual : vresiduals)
-    {
-        cout << residual << endl;
-    }
+//    cout << "GetReprojectionErrorNorms: " << endl;
+//
+//    vector<double> vresiduals;
+//    vresiduals = GetReprojectionErrorNorms(problem);
+//
+//    for (auto residual : vresiduals)
+//    {
+//        cout << residual << endl;
+//    }
 
     RemoveOutliers(problem, 25);
 

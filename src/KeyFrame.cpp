@@ -39,6 +39,7 @@ KeyFrame::KeyFrame(Frame &frame, Map *pMap)
 
 size_t KeyFrame::GetFrameID()
 {
+    unique_lock<mutex> lock(mMutexPose);
     return mID;
 }
 

@@ -107,6 +107,7 @@ public:
     Eigen::Vector3d GetPose();
 
     bool isBad();
+    void SetBadFlag();
 
     size_t  mID = -1;
     size_t mBALocalForKF;
@@ -147,6 +148,7 @@ public:
     Eigen::Vector3d GetPoseEnd();
 
     bool isBad();
+    void SetBadFlag();
 
     size_t mID = -1;
     size_t mBALocalForKF;

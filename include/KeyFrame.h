@@ -82,7 +82,7 @@ public:
     vector<int> mvOrderedWeights;
 
     bool mbFirstConnection;
-    Frame *pFrame = nullptr;
+    Frame *mpFrame = nullptr;
     KeyFrame* mpParent = nullptr;
     set<KeyFrame*> mspChildrens;
     set<KeyFrame*> mspLoopEdges;

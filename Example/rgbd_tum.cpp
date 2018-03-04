@@ -93,6 +93,10 @@ int main(int argc, char **argv)
 
     vo.SaveTrajectory("tum_trajectory1.txt");
 
+    while (1)
+        usleep(1000);
+
+    return 0;
 }
 
 

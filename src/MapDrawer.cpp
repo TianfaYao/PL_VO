@@ -25,7 +25,6 @@ MapDrawer::MapDrawer(Map* pMap, const string &strSettingPath):mpMap(pMap)
     mCameraPose.setIdentity();
 }
 
-//
 /**
 * @brief use this transformation can directly to display
 * @param Twc from the camere to world
@@ -37,8 +36,6 @@ pangolin::OpenGlMatrix MapDrawer::toOpenGLMatrix(const Eigen::Matrix<double, 3, 
 
     Eigen::Matrix3d Rwc = Twc.block<3, 3>(0, 0);
     Eigen::Vector3d twc = Twc.block<3, 1>(0, 3);
-
-    twc.data();
 
     M.m[0] = Rwc(0,0);
     M.m[1] = Rwc(1,0);
@@ -65,13 +62,48 @@ pangolin::OpenGlMatrix MapDrawer::toOpenGLMatrix(const Eigen::Matrix<double, 3, 
 
 void MapDrawer::DrawMapPoints()
 {
+    const vector<MapPoint*> &vpMPs = mpMap->GetAllMapPoints();
+
+    if (vpMPs.empty())
+        return;
+
     glPointSize(mPointSize);
     glBegin(GL_POINTS);
     glColor3f(0.0,0.0,0.0);
 
-    for (size_t i = 0; i < 10; i++)
+    for (auto pMP : vpMPs)
     {
-        glVertex3f(1.0, 1.0, 1.0*i);
+        if (pMP->isBad())
+            continue;
+
+        Eigen::Vector3d pos = pMP->GetPose();
+        glVertex3f(pos[0], pos[1], pos[2]);
+    }
+
+    glEnd();
+}
+
+void MapDrawer::DrawMapLines()
+{
+    const vector<MapLine*> &vpMLs = mpMap->GetAllMapLines();
+
+    if (vpMLs.empty())
+        return;
+
+    glLineWidth(mGraphLineWidth);
+    glColor4f(0.0f,1.0f,0.0f,0.6f);
+    glBegin(GL_LINES);
+
+    for (auto pML : vpMLs)
+    {
+        if (pML->isBad())
+            continue;
+
+        Eigen::Vector3d posStart = pML->GetPoseStart();
+        Eigen::Vector3d posEnd = pML->GetPoseEnd();
+
+        glVertex3f((float)posStart[0], (float)posStart[1], (float)posStart[2]);
+        glVertex3f((float)posEnd[0], (float)posEnd[1], (float)posEnd[2]);
     }
 
     glEnd();
@@ -180,10 +212,6 @@ void MapDrawer::DrawKeyFrames(const bool &bDrawKF, const bool &bDrawGraph)
 
     if (bDrawGraph)
     {
-        glLineWidth(mGraphLineWidth);
-        glColor4f(0.0f,1.0f,0.0f,0.6f);
-        glBegin(GL_LINES);
-
         for (size_t i = 0; i <  vpKFs.size(); i++)
         {
             // Covisiblity Graph, show the connection of the keyframes which can see the common view
@@ -199,8 +227,13 @@ void MapDrawer::DrawKeyFrames(const bool &bDrawKF, const bool &bDrawGraph)
                         continue;
 
                     Eigen::Vector3d Ow2 = vit->GetCameraCenter();
+
+                    glLineWidth(mGraphLineWidth);
+                    glColor4f(0.0f,1.0f,0.0f,0.6f);
+                    glBegin(GL_LINES);
                     glVertex3f((float)Ow[0], (float)Ow[1], (float)Ow[2]);
                     glVertex3f((float)Ow2[0], (float)Ow2[1], (float)Ow2[2]);
+                    glEnd();
                 }
             }
 
@@ -209,13 +242,17 @@ void MapDrawer::DrawKeyFrames(const bool &bDrawKF, const bool &bDrawGraph)
 
             if (pParent)
             {
+                glLineWidth(mGraphLineWidth+2);
+                glColor4f(0.0f,0.0f,0.0f,1.0f);
+                glBegin(GL_LINES);
                 Eigen::Vector3d Owp = pParent->GetCameraCenter();
                 glVertex3f((float)Ow[0], (float)Ow[1], (float)Ow[2]);
                 glVertex3f((float)Owp[0], (float)Owp[1], (float)Owp[2]);
+                glEnd();
             }
         }
 
-        glEnd();
+//        glEnd();
     }
 }
 

@@ -37,6 +37,12 @@ void Tracking::SetCurLastFrame(Frame *pcurFrame, Frame *plastFrame)
     mplastFrame = plastFrame;
 }
 
+// just use for the test
+void Tracking::SetLastKeyFrame(KeyFrame *pKeyFrame)
+{
+    mpLastKeyFrame = pKeyFrame;
+}
+
 void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &timeStamps)
 {
     mimageGray = imagergb.clone();
@@ -92,6 +98,7 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
         // use the pnp and point match to track the reference frame
         // use the pnp ransanc to remove the outliers
         TrackRefFrame(vpointRefineMatches, vlineRefineMatches);
+        // TrackRefFrameByPnP(vpointRefineMatches, vlineRefineMatches);
 
         UpdateMapLPfeature(vpointRefineMatches, vlineRefineMatches);
 
@@ -137,8 +144,6 @@ void Tracking::Track(const cv::Mat &imagergb, const cv::Mat &imD, const double &
 
 bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches)
 {
-    vector<cv::Point3d> vPoint3d;
-    vector<cv::Point2d> vPoint2d;
     vector<PointFeature2D *> vpPointFeature2DLast;
     vector<PointFeature2D *> vpPointFeature2DCur;
     vector<LineFeature2D *> vpLineFeature2DLast;
@@ -160,8 +165,6 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
             continue;
         }
 
-        vPoint3d.emplace_back(Converter::toCvPoint3f(pPointFeature2DLast->mPoint3dw));
-        vPoint2d.emplace_back(Converter::toCvPoint2f(pPointFeature2DCur->mpixel));
         vpPointFeature2DLast.emplace_back(pPointFeature2DLast);
         vpPointFeature2DCur.emplace_back(pPointFeature2DCur);
     }
@@ -174,7 +177,7 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
         CHECK_NOTNULL(pLineFeature2DLast);
         CHECK_NOTNULL(pLineFeature2DCur);
 
-        // TODO if line feature is not inlier in the last frame, the line feature is set outlier in the current frame
+        // TODO if line feature is not inlier in the last frame, the line feature is set outlier in the current frame, && !pLineFeature2DCur->mbinlier
         if (!pLineFeature2DLast->mbinlier)
         {
 //            pLineFeature2DCur->mbinlier = false;
@@ -197,6 +200,91 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
 
 }
 
+bool Tracking::TrackRefFrameByPnP(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches)
+{
+    vector<cv::Point3d> vPoint3d;
+    vector<cv::Point2d> vPoint2d;
+    vector<PointFeature2D *> vpPointFeature2DLast;
+    vector<PointFeature2D *> vpPointFeature2DCur;
+    vector<LineFeature2D *> vpLineFeature2DLast;
+    vector<LineFeature2D *> vpLineFeature2DCur;
+
+    for (auto match : vpointMatches)
+    {
+        PointFeature2D *pPointFeature2DLast = mpLastKeyFrame->mvpPointFeature2D[match.queryIdx];
+        PointFeature2D *pPointFeature2DCur = mpcurrentFrame->mvpPointFeature2D[match.trainIdx];
+
+        if (!pPointFeature2DLast->mbinlier || !pPointFeature2DCur->mbinlier)
+        {
+            continue;
+        }
+
+        vPoint3d.emplace_back(Converter::toCvPoint3f(pPointFeature2DLast->mPoint3dw));
+        vPoint2d.emplace_back(Converter::toCvPoint2f(pPointFeature2DCur->mpixel));
+        vpPointFeature2DLast.emplace_back(pPointFeature2DLast);
+        vpPointFeature2DCur.emplace_back(pPointFeature2DCur);
+    }
+
+    for (auto match : vlineMatches)
+    {
+        LineFeature2D *pLineFeature2DLast = mpLastKeyFrame->mvpLineFeature2D[match.queryIdx];
+        LineFeature2D *pLineFeature2DCur = mpcurrentFrame->mvpLineFeature2D[match.trainIdx];
+
+        CHECK_NOTNULL(pLineFeature2DLast);
+        CHECK_NOTNULL(pLineFeature2DCur);
+
+        // TODO if line feature is not inlier in the last frame, the line feature is set outlier in the current frame, && !pLineFeature2DCur->mbinlier
+        if (!pLineFeature2DLast->mbinlier)
+        {
+//            pLineFeature2DCur->mbinlier = false;
+            continue;
+        }
+
+
+        vpLineFeature2DLast.emplace_back(pLineFeature2DLast);
+        vpLineFeature2DCur.emplace_back(pLineFeature2DCur);
+    }
+
+    cv::Mat rvec, tvec;
+    vector<int> vinliers;
+    vector<int> voutliers;
+    cv::solvePnPRansac(vPoint3d, vPoint2d, PL_VO::Converter::toCvMat(mpcamera->GetCameraIntrinsic()), cv::Mat(),
+                       rvec, tvec, false, 100, 4.0, 0.99, vinliers);
+
+    voutliers.resize(vpPointFeature2DCur.size());
+
+    for (int i = 0; i < voutliers.size(); i++)
+    {
+        voutliers.at(i) = -1;
+    }
+
+    for (auto inlier : vinliers)
+    {
+        voutliers.at(inlier) = 1;
+    }
+
+    for (int i = 0; i < voutliers.size(); i++)
+    {
+        if (voutliers.at(i) == -1)
+        {
+            vpPointFeature2DCur[i]->mbinlier = false;
+//            vpPointFeature2DLast[i]->mbinlier = false;
+        }
+    }
+
+    mpcurrentFrame->Tcw = Sophus::SE3d(Sophus::SO3d::exp(Eigen::Vector3d(rvec.at<double>(0,0), rvec.at<double>(1,0), rvec.at<double>(2,0))),
+                                       Converter::toVector3d(tvec));
+
+    mPoseInc = mpLastKeyFrame->GetPose().inverse()*mpcurrentFrame->GetPose();
+
+    Optimizer::PnPResultOptimization(mpcurrentFrame, mPoseInc, vpPointFeature2DLast, vpPointFeature2DCur,
+                                     vpLineFeature2DLast, vpLineFeature2DCur);
+
+    mpcurrentFrame->SetPose(mpLastKeyFrame->GetPose()*mPoseInc);
+
+
+}
+
 void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
 {
     for (auto match : vpointMatches)
@@ -213,9 +301,9 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
             if (!pPointFeature->mPoint3dw.isZero())
                 pMapPoint->mPosew = mpLastKeyFrame->Tcw.inverse()*pPointFeature->mPoint3dw;
             pMapPoint->mmpPointFeature2D[mpLastKeyFrame->GetFrameID()] = pPointFeature;
-            pMapPoint->mvpFrameinvert.push_back(mpLastKeyFrame->pFrame);
+            pMapPoint->mvpFrameinvert.push_back(mpLastKeyFrame->mpFrame);
 
-            mpLastKeyFrame->pFrame->mvpMapPoint.push_back(pMapPoint);
+            mpLastKeyFrame->mpFrame->mvpMapPoint.push_back(pMapPoint);
             pPointFeature->mpMapPoint = pMapPoint;
 
             countMapPoint++;
@@ -258,6 +346,11 @@ void Tracking::UpdateMapPointfeature(const vector<cv::DMatch> &vpointMatches)
             mpcurrentFrame->mvpMapPoint.push_back(pMapPoint);
             pcurPointFeature->mpMapPoint = pMapPoint;
 
+            if (pMapPoint->GetObservedNum() > 2)
+            {
+                mpMap->AddMapPoint(pMapPoint);
+            }
+
         } // if (pPointFeature->mpMapPoint == nullptr)
 
     } // for (auto match : vpointMatches)
@@ -283,10 +376,10 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
             if (!pLineFeature->mEndPoint3dw.isZero())
                 pMapLine->mPoseEndw = mpLastKeyFrame->Tcw.inverse()*pLineFeature->mEndPoint3dw;
 
-            pMapLine->mvpFrameinvert.push_back(mpLastKeyFrame->pFrame);
+            pMapLine->mvpFrameinvert.push_back(mpLastKeyFrame->mpFrame);
             pMapLine->mmpLineFeature2D[mpLastKeyFrame->GetFrameID()] = pLineFeature;
 
-            mpLastKeyFrame->pFrame->mvpMapLine.push_back(pMapLine);
+            mpLastKeyFrame->mpFrame->mvpMapLine.push_back(pMapLine);
             pLineFeature->mpMapLine = pMapLine;
 
             countMapLine++;
@@ -334,6 +427,11 @@ void Tracking::UpdateMapLinefeature(const vector<cv::DMatch> &vlineMatches)
 
             mpcurrentFrame->mvpMapLine.push_back(pMapLine);
             pcurLineFeature->mpMapLine = pMapLine;
+
+            if (!pMapLine->GetPoseEnd().isZero() && !pMapLine->GetPoseStart().isZero() && pMapLine->GetObservedNum() > 2)
+            {
+                mpMap->AddMapLine(pMapLine);
+            }
 
         } // if (pLineFeature->pMapLine == nullptr)
     } // for (auto match : vlineMatches)
@@ -410,7 +508,7 @@ void Tracking::CreateNewKeyFrame()
 {
     KeyFrame *pKeyFrame = new KeyFrame(*mpcurrentFrame, mpMap);
 
-    pKeyFrame->pFrame = mpcurrentFrame;
+    pKeyFrame->mpFrame = mpcurrentFrame;
 
     mpcurrentFrame->mpKeyFrame = pKeyFrame;
 

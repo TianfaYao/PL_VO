@@ -52,10 +52,17 @@ void System::SaveTrajectory(const string &filename)
 
     ofstreamer << fixed;
 
-    for (auto pframe: mpMap->mvpFrames)
+    for (auto pKF: mpMap->GetAllKeyFrames())
     {
-//        if (pframe->isKeyFrame())
-            ofstreamer << setprecision(6) << pframe->mtimeStamp << " " << pframe->Tcw.inverse().translation().transpose() << endl;
+
+        Sophus::SE3d Twc;
+        Twc = pKF->GetPose().inverse();
+        Eigen::Quaterniond Rwc = Twc.unit_quaternion();
+        Eigen::Vector3d twc = Twc.translation();
+
+        ofstreamer << setprecision(6) << pKF->mtimeStamp << setprecision(7)<< " " << twc[0] << " " << twc[1]
+                   << " " << twc[2] << " " << Rwc.x() << " " << Rwc.y() << " " << Rwc.z() << " " << Rwc.w()
+                   << endl;
     }
 
     ofstreamer.close();

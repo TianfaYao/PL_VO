@@ -30,6 +30,13 @@ bool MapPoint::isBad()
     return mbBad;
 }
 
+void MapPoint::SetBadFlag()
+{
+    unique_lock<mutex> lock1(mMutexFeatures);
+    mbBad = true;
+
+    // TODO clear this MapPoint in the keyframe which includes this MapPoint
+}
 
 MapLine::MapLine()
 {
@@ -58,6 +65,14 @@ bool MapLine::isBad()
     unique_lock<mutex> lock(mMutexFeatures);
     unique_lock<mutex> lock2(mMutexPos);
     return mbBad;
+}
+
+void MapLine::SetBadFlag()
+{
+    unique_lock<mutex> lock1(mMutexFeatures);
+    mbBad = true;
+
+    // TODO clear this MapLine in the keyframe which includes this MapLine
 }
 
 Map::Map()

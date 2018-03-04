@@ -54,9 +54,13 @@ public:
 
     void SetCurLastFrame(Frame *pcurFrame, Frame *plastFrame);
 
+    void SetLastKeyFrame(KeyFrame *pKeyFrame);
+
     void Track(const cv::Mat &imagegray, const cv::Mat &imD, const double &timeStamps);
 
     bool TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches);
+
+    bool TrackRefFrameByPnP(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches);
 
     void UpdateMapLPfeature(const vector<cv::DMatch> &vpointMatches, const vector<cv::DMatch> &vlineMatches);
 
