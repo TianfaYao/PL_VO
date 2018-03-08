@@ -373,7 +373,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 {
     Eigen::Matrix3d K;
     Eigen::Matrix2d pointSqrtInforMatrix;
-    Eigen::Matrix2d lineSqrtInforMatrix;
+    Eigen::Matrix2d lineSqrtInforMatrix = Eigen::Matrix2d::Identity();
 
     K = pFrame->mpCamera->GetCameraIntrinsic();
     size_t frameID = pFrame->GetFrameID();
@@ -389,14 +389,14 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
     problem.AddParameterBlock(pKeyFrame->Tcw.data(), 7, new PoseLocalParameterization());
 //    problem.SetParameterBlockConstant(pKeyFrame->Tcw.data());
 
-    for (auto pMapLine : pFrame->mvpMapLine)
-    {
-        if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
-            continue;
-        cout << pMapLine->mID << " : "
-             << pMapLine->mPoseStartw.transpose() << " | "
-             << pMapLine->mPoseEndw.transpose() << endl;
-    }
+//    for (auto pMapLine : pFrame->mvpMapLine)
+//    {
+//        if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
+//            continue;
+//        cout << pMapLine->mID << " : "
+//             << pMapLine->mPoseStartw.transpose() << " | "
+//             << pMapLine->mPoseEndw.transpose() << endl;
+//    }
 
     ceres::LossFunction* lossfunction = new ceres::CauchyLoss(1);   // loss function make bundle adjustment robuster. HuberLoss
 
@@ -426,7 +426,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
         ceres::CostFunction *costfunction = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                      observed[0], observed[1], pointSqrtInforMatrix);
 
-        problem.AddResidualBlock(costfunction, lossfunction, pFrame->Tcw.data(), pMapPoint->mPosew.data());
+        problem.AddResidualBlock(costfunction, NULL, pFrame->Tcw.data(), pMapPoint->mPosew.data());
 
         problem.AddParameterBlock(pMapPoint->mPosew.data(), 3);
 
@@ -440,7 +440,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
         ceres::CostFunction *costfunction2 = new ReprojectionErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                      observed[0], observed[1], pointSqrtInforMatrix);
 
-//        problem.AddResidualBlock(costfunction2, lossfunction, pKeyFrame->Tcw.data(), pMapPoint->mPosew.data());
+        problem.AddResidualBlock(costfunction2, NULL, pKeyFrame->Tcw.data(), pMapPoint->mPosew.data());
     }
 
     // add the MapLine parameterblocks and residuals
@@ -475,10 +475,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
         ceres::CostFunction *costFunction = new ReprojectionLineErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                          observedStart, observedEnd, observedLineCoef, lineSqrtInforMatrix);
 
-//        double cost;
-//        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
-
-        problem.AddResidualBlock(costFunction, lossfunction, pFrame->Tcw.data(), pMapLine->mPoseStartw.data(), pMapLine->mPoseEndw.data());
+        problem.AddResidualBlock(costFunction, NULL, pFrame->Tcw.data(), pMapLine->mPoseStartw.data(), pMapLine->mPoseEndw.data());
 
         problem.AddParameterBlock(pMapLine->mPoseStartw.data(), 3);
         problem.AddParameterBlock(pMapLine->mPoseEndw.data(), 3);
@@ -495,13 +492,10 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
         ceres::CostFunction *costFunction2 = new ReprojectionLineErrorSE3(K(0, 0), K(1, 1), K(0, 2), K(1, 2),
                                                                          observedStart, observedEnd, observedLineCoef, lineSqrtInforMatrix);
 
-//        double cost;
-//        cost = ComputeMapLineCost(pMapLine, pFrame->Tcw.unit_quaternion(), pFrame->Tcw.translation(), K, frameID);
-
-//        problem.AddResidualBlock(costFunction2, lossfunction, pKeyFrame->Tcw.data(), pMapLine->mPoseStartw.data(), pMapLine->mPoseEndw.data());
+        problem.AddResidualBlock(costFunction2, NULL, pKeyFrame->Tcw.data(), pMapLine->mPoseStartw.data(), pMapLine->mPoseEndw.data());
     }
 
-    RemoveOutliers(problem, 20);
+//    RemoveOutliers(problem, 20);
 
     vector<double> vresiduals;
     vresiduals = GetReprojectionErrorNorms(problem);
@@ -544,6 +538,15 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 //    cout << pFrame->Tcw.unit_quaternion().coeffs() << endl;
 //    cout << pFrame->Tcw.translation() << endl;
 
+    for (auto pMapPoint : pFrame->mvpMapPoint)
+    {
+        if (pMapPoint->mPosew.isZero())
+            continue;
+
+        cout << pMapPoint->mID << " : "
+             << pMapPoint->GetPose().transpose() << endl;
+    }
+
     for (auto pMapLine : pFrame->mvpMapLine)
     {
         if (pMapLine->mPoseStartw.isZero() || pMapLine->mPoseEndw.isZero())
@@ -563,7 +566,7 @@ void Optimizer::PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame)
 } // void Optimizer::PoseOptimization(Frame *pFrame)
 
 
-void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
+void Optimizer::PnPSolveByBundleAdjustment(Frame *pFrame, Sophus::SE3d &PoseInc,
                                       vector<PointFeature2D *> &vpPointFeature2DLast,
                                       vector<PointFeature2D *> &vpPointFeature2DCur,
                                       vector<LineFeature2D *> &vpLineFeature2DLast,
@@ -693,7 +696,7 @@ void Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
             vpLineFeature2DInliers[i]->mbinlier = false;
     }
 
-} // Sophus::SE3 Optimizer::PnPResultOptimization(Frame *pFrame, Sophus::SE3 PoseInc)
+} // Sophus::SE3 Optimizer::PnPSolveByBundleAdjustment(Frame *pFrame, Sophus::SE3 PoseInc)
 
 void Optimizer::LocalBundleAdjustment(KeyFrame *pKeyFrame, bool *pbStopFlag, Map *pMap)
 {

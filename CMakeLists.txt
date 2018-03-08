@@ -43,7 +43,7 @@ add_library(${PROJECT_NAME} SHARED
     src/LocalMapping.cpp
     src/Viewer.cpp
     src/MapDrawer.cpp
-)
+    src/CVUtils.cpp)
 
 target_link_libraries(${PROJECT_NAME}
     ${OpenCV_LIBRARIES}
@@ -74,3 +74,6 @@ target_link_libraries(test_PLfeature_optimization ${PROJECT_NAME})
 
 add_executable(test_LineFeatureCost test/test_LineFeatureCost.cpp)
 target_link_libraries(test_LineFeatureCost ${PROJECT_NAME})
+
+add_executable(test_LineFeature_Optimization test/test_LineFeature_Optimization.cpp)
+target_link_libraries(test_LineFeature_Optimization ${PROJECT_NAME})

@@ -31,10 +31,10 @@ int main(int argc, char **argv)
     vector<string> vstrImageFilenamesD;
     vector<double> vTimestamps;
 
-    string strAssociationFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg1_desk/associate.txt");
-    string strGroundTruthFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg1_desk/groundtruth.txt");
-    string strSequenceFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg1_desk");
-    string strSettingsFile("../Example/TUM1.yaml");
+    string strAssociationFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg2_desk/associate.txt");
+    string strGroundTruthFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg2_desk/groundtruth.txt");
+    string strSequenceFilename("/home/rain/workspace/DataSets/rgbd_dataset_freiburg2_desk");
+    string strSettingsFile("../Example/TUM2.yaml");
 
 //    string strAssociationFilename("/home/rain/workspace/DataSets/freiburg3_long_office_household/associate.txt");
 //    string strGroundTruthFilename("/home/rain/workspace/DataSets/freiburg3_long_office_household/groundtruth.txt");

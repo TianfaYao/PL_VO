@@ -135,7 +135,7 @@ public:
 
     static void PoseOptimization(Frame *pFrame, KeyFrame *pKeyFrame);
 
-    static void PnPResultOptimization(Frame *pFrame, Sophus::SE3d &PoseInc,
+    static void PnPSolveByBundleAdjustment(Frame *pFrame, Sophus::SE3d &PoseInc,
                                       vector<PointFeature2D *> &vpPointFeature2DLast,
                                       vector<PointFeature2D *> &vpPointFeature2DCur,
                                       vector<LineFeature2D *> &vpLineFeature2DLast,

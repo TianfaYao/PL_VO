@@ -191,7 +191,7 @@ bool Tracking::TrackRefFrame(const vector<cv::DMatch> &vpointMatches, const vect
 
 //    cout << "PoseInc: " << endl << mPoseInc << endl;
 
-    Optimizer::PnPResultOptimization(mpcurrentFrame, mPoseInc, vpPointFeature2DLast, vpPointFeature2DCur,
+    Optimizer::PnPSolveByBundleAdjustment(mpcurrentFrame, mPoseInc, vpPointFeature2DLast, vpPointFeature2DCur,
                                      vpLineFeature2DLast, vpLineFeature2DCur);
 
 //    cout << "Optimization PoseInc: " << endl << mPoseInc << endl;
@@ -277,11 +277,10 @@ bool Tracking::TrackRefFrameByPnP(const vector<cv::DMatch> &vpointMatches, const
 
     mPoseInc = mpLastKeyFrame->GetPose().inverse()*mpcurrentFrame->GetPose();
 
-    Optimizer::PnPResultOptimization(mpcurrentFrame, mPoseInc, vpPointFeature2DLast, vpPointFeature2DCur,
+    Optimizer::PnPSolveByBundleAdjustment(mpcurrentFrame, mPoseInc, vpPointFeature2DLast, vpPointFeature2DCur,
                                      vpLineFeature2DLast, vpLineFeature2DCur);
 
     mpcurrentFrame->SetPose(mpLastKeyFrame->GetPose()*mPoseInc);
-
 
 }
 

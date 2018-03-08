@@ -38,6 +38,12 @@ void MapPoint::SetBadFlag()
     // TODO clear this MapPoint in the keyframe which includes this MapPoint
 }
 
+void MapPoint::SetPose(const Eigen::Vector3d &Pose)
+{
+    unique_lock<mutex> lock(mMutexPos);
+    mPosew = Pose;
+}
+
 MapLine::MapLine()
 {
 }
@@ -73,6 +79,13 @@ void MapLine::SetBadFlag()
     mbBad = true;
 
     // TODO clear this MapLine in the keyframe which includes this MapLine
+}
+
+void MapLine::SetPose(const Eigen::Vector3d &PoseStart, const Eigen::Vector3d &PoseEnd)
+{
+    unique_lock<mutex> lock(mMutexPos);
+    mPoseStartw = PoseStart;
+    mPoseEndw = PoseEnd;
 }
 
 Map::Map()

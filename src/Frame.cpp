@@ -106,6 +106,7 @@ Frame::~Frame()
 
 size_t Frame::GetFrameID()
 {
+    unique_lock<mutex> lock(mMutexPose);
     return mID;
 }
 

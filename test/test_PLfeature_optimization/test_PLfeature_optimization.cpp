@@ -55,6 +55,9 @@ int main(int argc, char* argv[])
     pcurrentFrame->detectFeature(img2, img2depth);
     plastFrame->detectFeature(img1, img1depth);
 
+    pcurrentFrame->UndistortKeyFeature();
+    plastFrame->UndistortKeyFeature();
+
     vector<cv::DMatch> vpointMatches;
     vector<cv::DMatch> vpointRefineMatches;
     vector<cv::DMatch> vlineMatches;
@@ -66,11 +69,7 @@ int main(int argc, char* argv[])
     pcurrentFrame->refineLPMatches(plastFrame->mvKeyPoint, pcurrentFrame->mvKeyPoint,
                                    plastFrame->mvKeyLine, pcurrentFrame->mvKeyLine,
                                    vpointMatches, vpointRefineMatches, vlineMatches, vlineRefineMatches);
-
-    pcurrentFrame->UndistortKeyFeature();
-    plastFrame->UndistortKeyFeature();
-
-//    {
+    {
 //        for (size_t i = 0; i < pcurrentFrame->mvKeyPoint.size(); i++)
 //        {
 //            cv::circle(imagepointshow, pcurrentFrame->mvKeyPoint[i].pt, 2, cv::Scalar(255, 0, 0), 2);
@@ -85,7 +84,7 @@ int main(int argc, char* argv[])
 //
 //        cv::imshow(" image lineun show ", imagelineunshow);
 //        cv::imshow(" image line show ", imagelineshow);
-//    }
+    }
 
     pcurrentFrame->UnprojectStereo(img2depth);
 

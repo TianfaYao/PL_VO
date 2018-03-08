@@ -81,6 +81,8 @@ public:
 
     inline Eigen::Vector2d World2Pixel(const Eigen::Vector3d &point3dw, const Eigen::Quaterniond &Rcw, const Eigen::Vector3d &tcw);
 
+    inline bool inBorder(const Eigen::Vector2d &pt);
+
     void Distortion(const Eigen::Vector2d &p, Eigen::Vector2d &du);
 
     void LiftProjective(const Eigen::Vector2d &p, Eigen::Vector3d &P);
@@ -160,6 +162,14 @@ inline Eigen::Vector2d Camera::World2Pixel(const Eigen::Vector3d &point3dw, cons
                                            const Eigen::Vector3d &tcw)
 {
     return Camera2Pixel(World2Camera(point3dw, Rcw, tcw));
+}
+
+inline bool Camera::inBorder(const Eigen::Vector2d &pt)
+{
+    if (pt[0] > 0 && pt[1] > 0 && pt[0] < mImageWidth && pt[1] < mImageHeight)
+        return true;
+    else
+        return false;
 }
 
 } // namespace PL_VO

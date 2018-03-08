@@ -108,6 +108,7 @@ public:
 
     bool isBad();
     void SetBadFlag();
+    void SetPose(const Eigen::Vector3d &Pose);
 
     size_t  mID = -1;
     size_t mBALocalForKF;
@@ -149,6 +150,7 @@ public:
 
     bool isBad();
     void SetBadFlag();
+    void SetPose(const Eigen::Vector3d &PoseStart, const Eigen::Vector3d &PoseEnd);
 
     size_t mID = -1;
     size_t mBALocalForKF;
